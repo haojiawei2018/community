@@ -1,0 +1,15 @@
+# IDE
+.idea/
+*.iml
+
+# Build
+target/
+
+# Logs
+logs/
+*.log
+
+# Misc
+*.class
+*.jar
+*.lst
