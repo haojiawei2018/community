@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# uni-app / HBuilderX build output
+unpackage/
+dist/
+
+# IDE and editor-local files
+.hbuilderx/
+.trae/
+.idea/
+.vscode/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
