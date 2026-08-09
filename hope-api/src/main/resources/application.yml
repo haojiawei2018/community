@@ -1,0 +1,35 @@
+server:
+  port: 10003
+
+spring:
+  profiles:
+    active: '@profileActive@'
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: hope-biz-api
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 1000MB
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/xml/*.xml
+  type-aliases-package: org.hopeframework.biz.api.model
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+
+# Swagger 文档配置
+swagger:
+  title: Hope Framework API
+  description: Spring Boot 后端服务脚手架
+  url: http://localhost:10003/
+
+logging:
+  config: classpath:logback-spring.xml
