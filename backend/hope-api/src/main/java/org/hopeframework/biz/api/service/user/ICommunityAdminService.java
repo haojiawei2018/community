@@ -9,7 +9,7 @@ import org.hopeframework.biz.api.entity.output.user.RoleResponse;
 
 import java.util.List;
 
-public interface CommunityAdminService {
+public interface ICommunityAdminService {
 
     PageResult<MemberAdminResponse> pageMembers(MemberPageRequest request);
 

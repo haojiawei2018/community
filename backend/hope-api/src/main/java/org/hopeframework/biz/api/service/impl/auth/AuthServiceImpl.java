@@ -23,7 +23,7 @@ import org.hopeframework.biz.api.model.auth.IamUser;
 import org.hopeframework.biz.api.model.auth.IamUserIdentity;
 import org.hopeframework.biz.api.model.auth.TenantMemberRole;
 import org.hopeframework.biz.api.model.auth.TenantRole;
-import org.hopeframework.biz.api.service.auth.AuthService;
+import org.hopeframework.biz.api.service.auth.IAuthService;
 import org.hopeframework.biz.api.entity.input.user.UpdateProfileRequest;
 import org.hopeframework.biz.api.mapper.user.TenantMemberMapper;
 import org.hopeframework.biz.api.model.user.TenantMember;
@@ -45,7 +45,7 @@ import java.util.regex.Pattern;
 
 @Service
 @DS("master")
-public class AuthServiceImpl implements AuthService {
+public class AuthServiceImpl implements IAuthService {
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{3,31}$");
     private static final long REFRESH_TOKEN_MILLIS = 30L * 24 * 60 * 60 * 1000;

@@ -8,7 +8,7 @@ import org.hopeframework.biz.api.entity.output.auth.TokenResponse;
 import org.hopeframework.biz.api.entity.output.auth.UserSessionResponse;
 import org.hopeframework.biz.api.entity.input.user.UpdateProfileRequest;
 
-public interface AuthService {
+public interface IAuthService {
     TokenResponse register(RegisterRequest request, String ip);
     TokenResponse login(LoginRequest request, String ip);
     TokenResponse refresh(RefreshRequest request);

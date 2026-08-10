@@ -4,7 +4,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.hopeframework.biz.api.auto.UserLoginToken;
 import org.hopeframework.biz.api.entity.output.auth.UserSessionResponse;
-import org.hopeframework.biz.api.service.auth.AuthService;
+import org.hopeframework.biz.api.service.auth.IAuthService;
 import org.hopeframework.biz.api.entity.input.user.UpdateProfileRequest;
 import org.hopeframework.core.response.RespBody;
 import org.hopeframework.core.response.ResultUtil;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/users/me")
 public class CurrentUserController {
 
-    private final AuthService authService;
+    private final IAuthService authService;
 
-    public CurrentUserController(AuthService authService) {
+    public CurrentUserController(IAuthService authService) {
         this.authService = authService;
     }
 

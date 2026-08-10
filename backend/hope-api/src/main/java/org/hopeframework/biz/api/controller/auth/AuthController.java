@@ -9,7 +9,7 @@ import org.hopeframework.biz.api.entity.input.auth.LogoutRequest;
 import org.hopeframework.biz.api.entity.input.auth.RefreshRequest;
 import org.hopeframework.biz.api.entity.input.auth.RegisterRequest;
 import org.hopeframework.biz.api.entity.output.auth.TokenResponse;
-import org.hopeframework.biz.api.service.auth.AuthService;
+import org.hopeframework.biz.api.service.auth.IAuthService;
 import org.hopeframework.core.response.RespBody;
 import org.hopeframework.core.response.ResultUtil;
 import org.hopeframework.core.util.WebUtils;
@@ -25,9 +25,9 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    private final AuthService authService;
+    private final IAuthService authService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(IAuthService authService) {
         this.authService = authService;
     }
 

@@ -10,7 +10,7 @@ import org.hopeframework.biz.api.entity.input.user.MemberPageRequest;
 import org.hopeframework.biz.api.entity.input.user.MemberRolesRequest;
 import org.hopeframework.biz.api.entity.input.user.MemberStatusRequest;
 import org.hopeframework.biz.api.entity.output.user.RoleResponse;
-import org.hopeframework.biz.api.service.user.CommunityAdminService;
+import org.hopeframework.biz.api.service.user.ICommunityAdminService;
 import org.hopeframework.core.response.RespBody;
 import org.hopeframework.core.response.ResultUtil;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,9 +28,9 @@ import java.util.List;
 @RequestMapping("/api/admin/v1")
 public class CommunityAdminMemberController {
 
-    private final CommunityAdminService communityAdminService;
+    private final ICommunityAdminService communityAdminService;
 
-    public CommunityAdminMemberController(CommunityAdminService communityAdminService) {
+    public CommunityAdminMemberController(ICommunityAdminService communityAdminService) {
         this.communityAdminService = communityAdminService;
     }
 

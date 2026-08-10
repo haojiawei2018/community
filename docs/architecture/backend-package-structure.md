@@ -15,6 +15,7 @@ org.hopeframework.biz.api
 
 - `controller` 只负责参数接收、权限入口和响应转换。
 - `service` 保存接口，`service/impl` 保存实现类和事务边界。
+- Service 接口按 Demo 命名为 `I<Domain>Service`，实现类命名为 `<Domain>ServiceImpl`。
 - `mapper` 只负责数据访问，跨业务域调用必须经过 Service。
 - `model` 保存数据库实体。
 - `entity/input` 和 `entity/output` 分别保存请求与响应对象。

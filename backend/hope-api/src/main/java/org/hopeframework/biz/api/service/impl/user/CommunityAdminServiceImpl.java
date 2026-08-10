@@ -20,7 +20,7 @@ import org.hopeframework.biz.api.entity.input.user.MemberStatusRequest;
 import org.hopeframework.biz.api.entity.output.user.RoleResponse;
 import org.hopeframework.biz.api.mapper.user.TenantMemberMapper;
 import org.hopeframework.biz.api.model.user.TenantMember;
-import org.hopeframework.biz.api.service.user.CommunityAdminService;
+import org.hopeframework.biz.api.service.user.ICommunityAdminService;
 import org.hopeframework.core.exception.HopeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class CommunityAdminServiceImpl implements CommunityAdminService {
+public class CommunityAdminServiceImpl implements ICommunityAdminService {
 
     private static final Set<String> MEMBER_STATUSES = new HashSet<>(
             Arrays.asList("ACTIVE", "MUTED", "BANNED", "LEFT"));
