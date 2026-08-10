@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class PageResult<T> implements Serializable {
 
-    private List<T> rows;
+    private List<T> records;
 
     private long total;
     private long pageSize;

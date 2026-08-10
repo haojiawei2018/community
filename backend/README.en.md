@@ -38,7 +38,6 @@ java-master
 │       │   └── util             # common utilities
 │       └── resources
 │           ├── application*.yml # dev / test / prod profiles
-│           ├── sql/demo.sql     # demo table DDL
 │           └── xml              # MyBatis XML (custom SQL example)
 └── hope-dependencies            # base component libraries
     ├── hope-core                # response, exception, logging, web config
@@ -49,7 +48,7 @@ java-master
 ## Quick Start
 
 1. Requirements: JDK 8, Maven 3.6+, MySQL 5.7, Redis.
-2. Create the database and run `hope-api/src/main/resources/sql/demo.sql` (default db name `hope`).
+2. From the `backend` directory, run `../sql/community_business_v1.sql` and `../sql/V20260810_01__seed_p0_permissions.sql` (default database name: `hope`).
 3. Edit `hope-api/src/main/resources/application-dev.yml` (defaults to `localhost:3306/hope`, user `root/root`).
 4. Start:
 

@@ -38,7 +38,6 @@ java-master
 │       │   └── util             # 通用工具类
 │       └── resources
 │           ├── application*.yml # 多环境配置（dev/test/prod）
-│           ├── sql/demo.sql     # 演示表建表脚本
 │           └── xml              # MyBatis XML（自定义 SQL 示例）
 └── hope-dependencies            # 基础组件库（聚合模块）
     ├── hope-core                # 统一响应、异常、日志、Web 配置
@@ -49,7 +48,7 @@ java-master
 ## 快速开始
 
 1. **准备环境**：JDK 8、Maven 3.6+、MySQL 5.7、Redis。
-2. **初始化数据库**：在本地 MySQL 执行 `hope-api/src/main/resources/sql/demo.sql`（默认数据库名 `hope`）。
+2. **初始化数据库**：从当前 `backend` 目录执行 `../sql/community_business_v1.sql` 和 `../sql/V20260810_01__seed_p0_permissions.sql`（默认数据库名 `hope`）。
 3. **修改配置**：按需修改 `hope-api/src/main/resources/application-dev.yml` 中的数据库和 Redis 连接（默认 `localhost:3306/hope`，账号 `root/root`）。
 4. **启动服务**：
 

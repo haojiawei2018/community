@@ -1,16 +1,12 @@
-package org.hopeframework.biz.api.auto;
+package org.hopeframework.biz.api.common.security;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * @Author: haojiawei
- * @Description:
- */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface AdminLoginToken {
-    boolean required() default true;
+public @interface RequirePermission {
+    String value();
 }

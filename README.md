@@ -1,49 +1,42 @@
 # Community
 
-开源游戏社区项目，采用前后端分离的单仓库结构。
+开源游戏社区项目，采用前后端分离结构，可运行于微信小程序、H5、Android 和 iOS。
 
 ## 项目结构
 
 ```text
 community/
-├── frontend/   # uni-app 前端：小程序、H5、Android、iOS
-└── backend/    # Hope Framework / Spring Boot 后端服务
+├── frontend/   # uni-app 用户端
+├── backend/    # Spring Boot 业务服务
+├── docs/       # 开源业务架构和接口文档
+└── sql/        # 开源业务数据库脚本
 ```
 
-## 前端
+## 后端启动
 
-前端位于 `frontend`，基于 uni-app、Vue 2 和图鸟 UI。
-
-使用 HBuilderX 时，请直接打开 `frontend` 目录运行或发行。
-
-开发环境接口地址配置在 `frontend/config/env.js`，默认连接：
-
-```text
-http://localhost:10003
-```
-
-## 后端
-
-后端位于 `backend`，是基于 Spring Boot 2.1.10 和 JDK 8 的 Maven 多模块项目，包含完整 Demo CRUD 示例。
-
-后端详细说明、环境要求和启动命令见 [`backend/README.md`](backend/README.md)。
-
-常用命令：
+后端基于 Spring Boot 2.1.10、JDK 8 和 MyBatis-Plus。
 
 ```bash
 cd backend
-mvn clean package -DskipTests
+mvn -pl hope-api -am test
 mvn -pl hope-api -am spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-服务默认端口为 `10003`，接口文档地址：
+默认端口为 `10003`，Swagger 文档地址为 `http://localhost:10003/doc.html`。
+
+初始化数据库时依次执行：
 
 ```text
-http://localhost:10003/doc.html
+sql/community_business_v1.sql
+sql/V20260810_01__seed_p0_permissions.sql
 ```
 
-## 后端脚手架来源
+## 开源版与商业版
 
-后端代码来源：https://gitee.com/hao_jiawei/java-master
+本仓库只包含可独立部署的论坛业务能力。租户控制台、套餐计费、配额、商业授权和跨租户运营属于私有商业增强版，不在本仓库维护。
 
-当前仓库通过 Git subtree 将脚手架纳入 `backend` 目录，整个社区项目统一版本管理，不包含嵌套 Git 仓库。
+- [Open Core 边界](docs/architecture/open-core-boundary.md)
+- [业务接口文档](docs/api/business-api.md)
+- [SQL 管理规范](sql/README.md)
+
+后端脚手架来源：[Hope Framework](https://gitee.com/hao_jiawei/java-master)。

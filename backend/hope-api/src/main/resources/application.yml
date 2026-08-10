@@ -33,3 +33,12 @@ swagger:
 
 logging:
   config: classpath:logback-spring.xml
+
+community:
+  id: ${COMMUNITY_ID:1}
+  code: '${COMMUNITY_CODE:default}'
+  name: '${COMMUNITY_NAME:开源游戏社区}'
+  logo-url: '${COMMUNITY_LOGO_URL:}'
+  security:
+    access-token-secret: '${COMMUNITY_ACCESS_TOKEN_SECRET:dev-only-change-this-access-token-secret}'
+    access-token-seconds: ${COMMUNITY_ACCESS_TOKEN_SECONDS:7200}
