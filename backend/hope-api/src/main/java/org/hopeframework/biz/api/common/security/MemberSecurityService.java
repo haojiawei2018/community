@@ -1,8 +1,8 @@
 package org.hopeframework.biz.api.common.security;
 
-import org.hopeframework.biz.api.module.auth.mapper.MemberAuthorityMapper;
-import org.hopeframework.biz.api.module.user.mapper.TenantMemberMapper;
-import org.hopeframework.biz.api.module.user.model.TenantMember;
+import org.hopeframework.biz.api.mapper.auth.MemberAuthorityMapper;
+import org.hopeframework.biz.api.mapper.user.TenantMemberMapper;
+import org.hopeframework.biz.api.model.user.TenantMember;
 import org.hopeframework.core.exception.HopeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

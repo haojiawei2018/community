@@ -37,6 +37,7 @@ sql/V20260810_02__seed_default_roles.sql
 本仓库只包含可独立部署的论坛业务能力。租户控制台、套餐计费、配额、商业授权和跨租户运营属于私有商业增强版，不在本仓库维护。
 
 - [Open Core 边界](docs/architecture/open-core-boundary.md)
+- [后端包结构](docs/architecture/backend-package-structure.md)
 - [业务接口文档](docs/api/business-api.md)
 - [SQL 管理规范](sql/README.md)
 
