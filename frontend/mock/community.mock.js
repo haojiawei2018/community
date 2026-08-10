@@ -168,6 +168,18 @@ export default {
       features: { circle: true, post: true, comment: true, moderation: true }
     })
   },
+  getCircleList() {
+    return mockResponse([
+      {
+        id: 1,
+        circleCode: 'general',
+        circleName: '综合交流',
+        description: '分享游戏心得、攻略和社区动态',
+        memberCount: 0,
+        postCount: posts.length
+      }
+    ])
+  },
   // 获取轮播图列表
   getSwiperList() {
     return mockResponse({ list: swiperList, total: swiperList.length })

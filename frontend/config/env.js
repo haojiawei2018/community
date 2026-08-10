@@ -20,8 +20,8 @@ export default {
   communityCode: 'default',
   // 是否启用 mock 静态数据
   useMock: false,
-  // 帖子/评论 P0 后端尚未落地时保留现有静态展示，避免请求不存在的旧接口
-  forumApiEnabled: false,
+  // 圈子、帖子、评论和点赞 P0 接口已落地；联调时可临时关闭以回到静态展示
+  forumApiEnabled: true,
   // 应用版本号
   appVersion: '1.0.0'
 }

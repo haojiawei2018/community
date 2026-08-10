@@ -18,6 +18,10 @@ public final class AuthContext {
         return principal;
     }
 
+    public static AuthPrincipal current() {
+        return CONTEXT.get();
+    }
+
     public static void clear() {
         CONTEXT.remove();
     }

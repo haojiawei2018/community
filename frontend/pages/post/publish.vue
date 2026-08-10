@@ -16,6 +16,25 @@
     <!-- 内容区域 -->
     <view class="publish-wrap" :style="{paddingTop: vuex_custom_bar_height + 'px'}">
       <view class="form-card tn-bg-white">
+        <view class="form-row">
+          <view class="row-label tn-flex tn-flex-col-center tn-flex-row-between">
+            <text class="tn-text-sm tn-color-gray">发布到圈子</text>
+            <text v-if="loadingCircles" class="tn-text-sm tn-color-gray">加载中...</text>
+          </view>
+          <scroll-view v-if="circleList.length" scroll-x class="circle-select" show-scrollbar="false">
+            <view class="tn-flex tn-flex-col-center circle-select__inner">
+              <view v-for="circle in circleList" :key="circle.id" class="circle-option"
+                :class="{ active: String(formData.circleId) === String(circle.id) }"
+                @click="formData.circleId = circle.id">
+                {{ circle.circleName }}
+              </view>
+            </view>
+          </scroll-view>
+          <view v-else-if="!loadingCircles" class="tn-color-gray tn-text-sm tn-margin-top-sm">暂无可发布的圈子</view>
+        </view>
+
+        <view class="form-divider"></view>
+
         <!-- 标题 -->
         <view class="form-row">
           <input
@@ -121,6 +140,7 @@
       return {
         // 表单数据
         formData: {
+          circleId: '',
           title: '',
           content: '',
           tags: []
@@ -132,8 +152,13 @@
         // 已上传成功的图片URL列表
         uploadedImages: [],
         // 提交中
-        submitting: false
+        submitting: false,
+        loadingCircles: false,
+        circleList: []
       }
+    },
+    onLoad() {
+      this.fetchCircles()
     },
     computed: {
       // 图片上传地址：后端文件上传接口
@@ -150,6 +175,20 @@
       }
     },
     methods: {
+      async fetchCircles() {
+        this.loadingCircles = true
+        try {
+          const data = await community.getCircleList()
+          this.circleList = Array.isArray(data) ? data : []
+          if (!this.formData.circleId && this.circleList.length) {
+            this.formData.circleId = this.circleList[0].id
+          }
+        } catch (error) {
+          console.error(LOG_TAG, '圈子列表加载失败:', error)
+        } finally {
+          this.loadingCircles = false
+        }
+      },
       // 返回上一页
       goBack() {
         uni.navigateBack({ delta: 1 })
@@ -233,6 +272,10 @@
       // 表单校验
       validate() {
         const { title, content } = this.formData
+        if (!this.formData.circleId) {
+          uni.showToast({ title: '请选择发布圈子', icon: 'none' })
+          return false
+        }
         if (!title.trim()) {
           uni.showToast({ title: '请输入标题', icon: 'none' })
           return false
@@ -259,6 +302,7 @@
         this.submitting = true
         // 后端发布帖子接口仅需 title 和 content
         const payload = {
+          circleId: this.formData.circleId,
           title: this.formData.title.trim(),
           content: this.formData.content.trim()
         }
@@ -269,6 +313,7 @@
           console.log(LOG_TAG, '<<< 发布帖子响应:', JSON.stringify(res))
           console.log(LOG_TAG, `发布帖子接口耗时: ${Date.now() - startTime}ms`)
           uni.showToast({ title: '发布成功', icon: 'success' })
+          uni.$emit('forum-post-published', res)
           // 延迟返回，保证 toast 显示
           setTimeout(() => {
             uni.navigateBack({ delta: 1 })
@@ -316,6 +361,31 @@
 
   .form-row {
     padding: 20rpx 0;
+  }
+
+  .circle-select {
+    width: 100%;
+    white-space: nowrap;
+    margin-top: 18rpx;
+  }
+
+  .circle-select__inner {
+    display: inline-flex;
+  }
+
+  .circle-option {
+    flex-shrink: 0;
+    margin-right: 14rpx;
+    padding: 12rpx 26rpx;
+    border-radius: 30rpx;
+    background-color: #F2F2F2;
+    color: #666666;
+    font-size: 24rpx;
+  }
+
+  .circle-option.active {
+    background-color: #000000;
+    color: #FFFFFF;
   }
 
   .form-divider {

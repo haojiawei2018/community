@@ -57,6 +57,17 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        String optionalToken = resolveToken(request);
+        if (optionalToken != null && !optionalToken.trim().isEmpty()) {
+            AuthPrincipal principal = accessTokenService.verify(optionalToken);
+            Long currentTenantId = TenantContext.getTenantId();
+            if (currentTenantId == null || !currentTenantId.equals(principal.getTenantId())) {
+                throw new HopeException(HttpStatus.FORBIDDEN.value(), "访问令牌不属于当前租户");
+            }
+            memberSecurityService.validate(principal);
+            AuthContext.set(principal);
+        }
+
         return true;
     }
 

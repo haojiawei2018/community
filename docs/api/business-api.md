@@ -41,6 +41,37 @@ Authorization: Bearer <accessToken>
 - `GET /api/v1/users/me`：当前账号、社区成员、角色和权限。
 - `PUT /api/v1/users/me`：修改 `displayName`、`avatarUrl` 和 `bio`。
 
+## 圈子、帖子、评论和点赞
+
+公开查询接口支持匿名访问；请求携带有效 Bearer Token 时，帖子详情会同时返回当前成员的 `isLiked` 状态。写接口必须登录。
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/v1/circles` | Optional | 当前社区启用的圈子 |
+| GET | `/api/v1/circles/{circleId}` | Optional | 圈子详情 |
+| GET | `/api/v1/posts` | Optional | 公开帖子分页，支持 `circleId`、`keyword`、`page`、`pageSize` |
+| GET | `/api/v1/posts/{postId}` | Optional | 帖子详情并增加浏览量 |
+| POST | `/api/v1/posts` | Yes | 发布帖子或保存草稿 |
+| GET | `/api/v1/posts/{postId}/comments` | Optional | 评论分页 |
+| POST | `/api/v1/posts/{postId}/comments` | Yes | 发表评论 |
+| PUT | `/api/v1/posts/{postId}/like` | Yes | 幂等点赞 |
+| DELETE | `/api/v1/posts/{postId}/like` | Yes | 幂等取消点赞 |
+
+帖子分页响应使用统一分页结构：`records`、`total`、`pageSize`、`page`。发帖请求示例：
+
+```json
+{
+  "circleId": "1",
+  "postType": "ARTICLE",
+  "title": "第一次分享",
+  "content": "这里是帖子正文",
+  "visibility": "PUBLIC",
+  "saveAsDraft": false
+}
+```
+
+当前 P0 默认直接发布普通帖子；`saveAsDraft=true` 时保存为草稿。审核流、回复、评论点赞、收藏和媒体资源将在后续迭代补齐。
+
 ## 社区后台
 
 社区后台只管理论坛业务，包括成员、角色、游戏、圈子、板块、帖子、评论、审核、举报、公告和审计。商业 SaaS 控制面不属于本仓库。

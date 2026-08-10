@@ -28,6 +28,12 @@ export default {
     return http.get('/api/v1/bootstrap', options)
   },
 
+  /** 获取当前社区启用的圈子 */
+  getCircleList() {
+    if (useForumMock()) return mock.getCircleList()
+    return http.get('/api/v1/circles')
+  },
+
   /* ===================== 帖子相关 ===================== */
 
   /**

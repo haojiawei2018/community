@@ -204,6 +204,16 @@
     <!-- 瀑布流内容-->
     <view class="time time-fill" :class="showUserModal==true?'tn-con-hide':'tn-con-show'">
 
+      <scroll-view v-if="circleList.length > 1" scroll-x class="circle-filter" show-scrollbar="false">
+        <view class="circle-filter__inner tn-flex tn-flex-col-center">
+          <view class="circle-chip" :class="{ active: !activeCircleId }" @click="selectCircle('')">全部</view>
+          <view v-for="circle in circleList" :key="circle.id" class="circle-chip"
+            :class="{ active: String(activeCircleId) === String(circle.id) }" @click="selectCircle(circle.id)">
+            {{ circle.circleName }}
+          </view>
+        </view>
+      </scroll-view>
+
       <view v-if="current === 0 && list.length > 0">
         <view class="home-list">
           <tn-waterfall ref="waterfall" v-model="list" @finish="handleWaterFallFinish">
@@ -319,7 +329,9 @@
           <view class="tn-text-center" style="font-size: 260rpx;">
             <text class="tn-icon-game tn-color-gray--disabled"></text>
           </view>
-          <view class="tn-color-gray tn-text-center tn-text-lg">暂无内容</view>
+          <view class="tn-color-gray tn-text-center tn-text-lg">{{ loadError ? '内容加载失败' : '暂无内容' }}</view>
+          <tn-button v-if="loadError" class="tn-margin-top" backgroundColor="#000000" fontColor="#FFFFFF"
+            shape="round" size="sm" @click="fetchPostList(true)">重新加载</tn-button>
         </view>
       </view>
 
@@ -386,6 +398,9 @@
         hasMore: true,
         /* 是否正在加载 */
         loading: false,
+        loadError: false,
+        circleList: [],
+        activeCircleId: '',
         
         content: [{
             mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716014593433-assets/web-upload/6e1ba4f3-4757-4693-b827-b8803072c5c9.jpeg',
@@ -743,11 +758,32 @@
     },
     
     created() {
-      /* 瀑布流：首次加载真实接口数据 */
+      this.fetchCircles()
       this.fetchPostList(true)
+      uni.$on('forum-post-published', this.handlePostPublished)
+    },
+
+    beforeDestroy() {
+      uni.$off('forum-post-published', this.handlePostPublished)
     },
 
     methods: {
+      handlePostPublished() {
+        this.fetchPostList(true)
+      },
+      async fetchCircles() {
+        try {
+          const data = await community.getCircleList()
+          this.circleList = Array.isArray(data) ? data : []
+        } catch (error) {
+          console.error(LOG_TAG, '圈子列表加载失败:', error)
+        }
+      },
+      selectCircle(circleId) {
+        if (String(this.activeCircleId) === String(circleId)) return
+        this.activeCircleId = circleId
+        this.fetchPostList(true)
+      },
       // 打开选择弹框
       openUserModal() {
         if (typeof wx !== 'undefined' && wx.vibrateShort) {
@@ -780,6 +816,7 @@
           this.page = 1
           this.hasMore = true
           this.list = []
+          this.loadError = false
         }
         if (!this.hasMore) {
           console.log(LOG_TAG, '没有更多数据了')
@@ -790,7 +827,8 @@
         this.loadStatus = 'loading'
         const params = {
           page: this.page,
-          pageSize: this.pageSize
+          pageSize: this.pageSize,
+          circleId: this.activeCircleId || undefined
         }
         console.log(LOG_TAG, '>>> 请求帖子列表, params:', params)
         const startTime = Date.now()
@@ -812,11 +850,7 @@
         } catch (err) {
           console.error(LOG_TAG, '<<< 帖子列表请求失败:', err)
           this.loadStatus = 'loadmore'
-          // 接口失败时使用本地静态数据兜底，避免页面空白
-          if (isRefresh && this.list.length === 0) {
-            console.warn(LOG_TAG, '接口失败，使用本地静态数据兜底')
-            this.fallbackToStaticData()
-          }
+          this.loadError = this.list.length === 0
         } finally {
           this.loading = false
         }
@@ -859,15 +893,6 @@
           }
         }
       },
-      // 本地静态数据兜底（接口不可用时）
-      fallbackToStaticData() {
-        for (let i = 0; i < 10; i++) {
-          let index = this.$t.number.randomInt(0, this.data.length - 1)
-          let item = JSON.parse(JSON.stringify(this.data[index]))
-          item.id = this.$t.uuid()
-          this.list.push(item)
-        }
-      },
       // 瀑布流加载完毕事件
       handleWaterFallFinish() {
         this.loadStatus = 'loadmore'
@@ -893,6 +918,32 @@
   .home-list {
     padding: 20rpx 20rpx 100rpx;
     background-color: #F6F6F6;
+  }
+
+  .circle-filter {
+    width: 100%;
+    white-space: nowrap;
+    background-color: #F6F6F6;
+  }
+
+  .circle-filter__inner {
+    display: inline-flex;
+    padding: 16rpx 20rpx 0;
+  }
+
+  .circle-chip {
+    flex-shrink: 0;
+    margin-right: 14rpx;
+    padding: 10rpx 24rpx;
+    border-radius: 28rpx;
+    background-color: #FFFFFF;
+    color: #666666;
+    font-size: 24rpx;
+  }
+
+  .circle-chip.active {
+    background-color: #000000;
+    color: #FFFFFF;
   }
 
   /* 自定义导航栏内容 start */

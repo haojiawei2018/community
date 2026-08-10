@@ -13,6 +13,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -51,13 +52,35 @@ public class AuthenticationInterceptorTest {
         interceptor.preHandle(request, new MockHttpServletResponse(), handlerMethod());
     }
 
+    @Test
+    public void shouldEstablishContextForOptionalAuthenticatedRequest() throws Exception {
+        TenantContext.set(3L, "official");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " +
+                tokenService.create(new AuthPrincipal(1L, 2L, 3L)));
+
+        boolean accepted = interceptor.preHandle(request, new MockHttpServletResponse(), openHandlerMethod());
+
+        assertTrue(accepted);
+        assertNotNull(AuthContext.current());
+        verify(memberSecurityService).validate(org.mockito.ArgumentMatchers.any(AuthPrincipal.class));
+    }
+
     private HandlerMethod handlerMethod() throws NoSuchMethodException {
         return new HandlerMethod(new SecuredController(), SecuredController.class.getMethod("secured"));
+    }
+
+    private HandlerMethod openHandlerMethod() throws NoSuchMethodException {
+        return new HandlerMethod(new SecuredController(), SecuredController.class.getMethod("open"));
     }
 
     private static class SecuredController {
         @UserLoginToken
         public void secured() {
+        }
+
+
+        public void open() {
         }
     }
 }
