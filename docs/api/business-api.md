@@ -44,3 +44,68 @@ Authorization: Bearer <accessToken>
 ## 社区后台
 
 社区后台只管理论坛业务，包括成员、角色、游戏、圈子、板块、帖子、评论、审核、举报、公告和审计。商业 SaaS 控制面不属于本仓库。
+
+所有社区后台接口都要求 `Authorization: Bearer <accessToken>`，并按接口校验业务权限。首位注册用户自动成为 `OWNER`，`OWNER` 拥有当前社区全部业务权限。
+
+### 成员分页
+
+- `GET /api/admin/v1/members`
+- 权限：`member.read`
+- 查询参数：`page`、`pageSize`、`keyword`、`status`
+- `pageSize` 最大为 100；`keyword` 当前匹配社区昵称；`status` 支持 `ACTIVE`、`MUTED`、`BANNED`、`LEFT`。
+
+响应 `data`：
+
+```json
+{
+  "records": [
+    {
+      "memberId": 1,
+      "userId": 1,
+      "username": "player_01",
+      "displayName": "玩家一号",
+      "avatarUrl": null,
+      "status": "ACTIVE",
+      "muteUntil": null,
+      "joinedAt": "2026-08-10T10:00:00.000+00:00",
+      "roles": ["OWNER"]
+    }
+  ],
+  "total": 1,
+  "pageSize": 10,
+  "page": 1
+}
+```
+
+### 修改成员状态
+
+- `PUT /api/admin/v1/members/{memberId}/status`
+- 权限：`member.status.write`
+- `MUTED` 必须提供晚于当前时间的 `muteUntil`；切换到其他状态会清空禁言时间。
+- 不允许把当前登录成员自己设置为 `BANNED` 或 `LEFT`。
+
+```json
+{
+  "status": "MUTED",
+  "muteUntil": "2026-08-11T10:00:00.000+00:00"
+}
+```
+
+### 查询角色
+
+- `GET /api/admin/v1/roles`
+- 权限：`member.role.write`
+- 返回当前社区角色及每个角色绑定的权限编码。
+
+### 覆盖设置成员角色
+
+- `PUT /api/admin/v1/members/{memberId}/roles`
+- 权限：`member.role.write`
+- `roleIds` 至少包含一个当前社区角色；该操作会覆盖成员原有角色。
+- 只有 `OWNER` 可以授予 `OWNER` 角色。
+
+```json
+{
+  "roleIds": [2, 3]
+}
+```

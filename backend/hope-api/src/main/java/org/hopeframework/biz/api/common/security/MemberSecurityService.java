@@ -29,6 +29,10 @@ public class MemberSecurityService {
     }
 
     public void requirePermission(Long memberId, String permissionCode) {
+        List<String> roles = authorityMapper.selectRoleCodes(memberId);
+        if (roles != null && roles.contains("OWNER")) {
+            return;
+        }
         List<String> permissions = authorityMapper.selectPermissionCodes(memberId);
         if (permissions == null || !permissions.contains(permissionCode)) {
             throw new HopeException(HttpStatus.FORBIDDEN.value(), "无权执行当前操作");

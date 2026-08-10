@@ -19,4 +19,9 @@ public interface MemberAuthorityMapper {
             "JOIN tenant_member_role mr ON mr.role_id = rp.role_id " +
             "WHERE mr.member_id = #{memberId}")
     List<String> selectPermissionCodes(@Param("memberId") Long memberId);
+
+    @Select("SELECT DISTINCT p.permission_code FROM sys_permission p " +
+            "JOIN tenant_role_permission rp ON rp.permission_id = p.id " +
+            "WHERE rp.role_id = #{roleId}")
+    List<String> selectPermissionCodesByRoleId(@Param("roleId") Long roleId);
 }

@@ -29,6 +29,7 @@ mvn -pl hope-api -am spring-boot:run -Dspring-boot.run.profiles=dev
 ```text
 sql/community_business_v1.sql
 sql/V20260810_01__seed_p0_permissions.sql
+sql/V20260810_02__seed_default_roles.sql
 ```
 
 ## 开源版与商业版

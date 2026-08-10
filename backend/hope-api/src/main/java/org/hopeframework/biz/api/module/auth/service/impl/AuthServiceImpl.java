@@ -217,14 +217,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void assignDefaultMemberRole(Long memberId, Date now) {
+        boolean firstMember = memberMapper.selectCount(null) == 1;
+        String roleCode = firstMember ? "OWNER" : "MEMBER";
         TenantRole role = roleMapper.selectOne(new LambdaQueryWrapper<TenantRole>()
-                .eq(TenantRole::getRoleCode, "MEMBER"));
+                .eq(TenantRole::getRoleCode, roleCode));
         if (role == null) {
             role = new TenantRole();
             role.setTenantId(TenantContext.requireTenantId());
-            role.setRoleCode("MEMBER");
-            role.setRoleName("普通成员");
-            role.setRoleType("MEMBER");
+            role.setRoleCode(roleCode);
+            role.setRoleName(firstMember ? "社区所有者" : "普通成员");
+            role.setRoleType(roleCode);
             role.setSystemRole(1);
             role.setCreatedAt(now);
             role.setUpdatedAt(now);
