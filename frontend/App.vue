@@ -2,6 +2,8 @@
   import Vue from 'vue'
   import store from './store/index.js'
   import updateCustomBarInfo from './tuniao-ui/libs/function/updateCustomBarInfo.js'
+  import { community, user } from './api/index.js'
+  import session from './utils/session.js'
   
 	export default {
 		onLaunch: function() {
@@ -74,13 +76,34 @@
 			  })
 			}
       // #endif
+
+      this.initializeAppData()
 		},
 		onShow: function() {
 			// console.log('App Show')
 		},
 		onHide: function() {
 			// console.log('App Hide')
-		}
+		},
+    methods: {
+      async initializeAppData() {
+        try {
+          const bootstrap = await community.getBootstrap({ custom: { silent: true } })
+          session.saveCommunity(bootstrap)
+        } catch (error) {
+          console.warn('[App] 社区初始化信息暂不可用')
+        }
+
+        await user.restoreSession()
+        if (!session.getAccessToken()) return
+        try {
+          const currentUser = await user.getCurrentUser({ custom: { silent: true, authRedirect: false } })
+          session.saveUser(currentUser)
+        } catch (error) {
+          console.warn('[App] 当前用户信息刷新失败')
+        }
+      }
+    }
 	}
 </script>
 

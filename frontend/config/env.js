@@ -16,8 +16,12 @@ export default {
   env,
   // 后端接口基础地址（Hope Framework）
   baseURL: isDev ? 'http://localhost:10003' : 'https://api.your-domain.com',
+  // SaaS 版用于解析租户；开源单社区版会安全忽略并使用后端固定社区配置
+  communityCode: 'default',
   // 是否启用 mock 静态数据
   useMock: false,
+  // 帖子/评论 P0 后端尚未落地时保留现有静态展示，避免请求不存在的旧接口
+  forumApiEnabled: false,
   // 应用版本号
   appVersion: '1.0.0'
 }

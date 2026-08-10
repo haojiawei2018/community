@@ -251,6 +251,7 @@
 
 <script>
   import { user } from '@/api/index.js'
+  import session from '@/utils/session.js'
 
   // 日志前缀，便于在控制台过滤
   const LOG_TAG = '[PageE]'
@@ -332,8 +333,8 @@
           'https://cdn.nlark.com/yuque/0/2022/jpeg/280373/1668321603396-assets/web-upload/a7f7dd1d-3618-4888-a20c-6b55a6aa69a4.jpeg',
           'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1711183180435-assets/web-upload/a091b9f2-c587-412d-96c4-adbedbb0a889.jpeg'
         ]
-        const avatar = this.userInfo.avatar || this.userInfo.userImage
-        const id = Number(this.userInfo.id || this.userInfo.uid || 0) || 0
+        const avatar = this.userInfo.avatarUrl || this.userInfo.avatar || this.userInfo.userImage
+        const id = Number(this.userInfo.userId || this.userInfo.id || this.userInfo.uid || 0) || 0
         const url = avatar || fallbackAvatars[id % fallbackAvatars.length]
         return `background-image:url('${url}');width: 110rpx;height: 110rpx;background-size: cover;overflow: hidden;`
       }
@@ -354,16 +355,26 @@
         this.loadUserInfo()
       },
       // 加载本地存储的用户信息，并做字段归一化
-      loadUserInfo() {
-        const token = uni.getStorageSync('token')
-        const rawInfo = uni.getStorageSync('userInfo') || {}
-        this.isLoggedIn = !!token
-        // 字段归一化：后端 username / email 兼容前端 nickname / uid
+      async loadUserInfo() {
+        const rawInfo = session.getUser()
+        this.isLoggedIn = !!session.getAccessToken()
+        // 字段归一化：保留原模板字段，同时适配新的用户会话结构
         const normalized = Object.assign({}, rawInfo)
-        if (!normalized.nickname && normalized.username) normalized.nickname = normalized.username
-        if (!normalized.uid && normalized.id) normalized.uid = normalized.id
+        if (!normalized.nickname) normalized.nickname = normalized.displayName || normalized.username
+        if (!normalized.uid) normalized.uid = normalized.userId || normalized.id
         this.userInfo = normalized
         console.log(LOG_TAG, '加载用户信息, isLoggedIn:', this.isLoggedIn, 'userInfo:', this.userInfo)
+        if (!this.isLoggedIn) return
+        try {
+          const currentUser = await user.getCurrentUser({ custom: { silent: true, authRedirect: false } })
+          session.saveUser(currentUser)
+          this.userInfo = Object.assign({}, currentUser, {
+            nickname: currentUser.displayName || currentUser.nickname || currentUser.username,
+            uid: currentUser.userId
+          })
+        } catch (error) {
+          console.warn(LOG_TAG, '刷新用户信息失败，继续使用本地缓存')
+        }
       },
 
       // 点击用户信息区域：未登录跳登录页，已登录刷新用户信息
@@ -382,12 +393,15 @@
         uni.showModal({
           title: '提示',
           content: '确定要退出登录吗？',
-          success: (res) => {
+          success: async (res) => {
             if (res.confirm) {
               console.log(LOG_TAG, '用户确认退出登录')
-              // 清除本地存储的登录信息
-              uni.removeStorageSync('token')
-              uni.removeStorageSync('userInfo')
+              try {
+                await user.logout()
+              } catch (error) {
+                console.warn(LOG_TAG, '服务端退出失败，仍清理本地会话')
+              }
+              session.clearAuthSession()
               this.isLoggedIn = false
               this.userInfo = {}
               uni.showToast({ title: '已退出登录', icon: 'success' })

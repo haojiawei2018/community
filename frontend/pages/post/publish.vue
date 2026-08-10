@@ -110,6 +110,7 @@
 <script>
   import { community } from '@/api/index.js'
   import env from '@/config/env.js'
+  import session from '@/utils/session.js'
 
   // 日志前缀，便于在控制台过滤
   const LOG_TAG = '[PostPublish]'
@@ -137,13 +138,14 @@
     computed: {
       // 图片上传地址：后端文件上传接口
       uploadAction() {
-        return env.baseURL + '/file/upload'
+        return env.baseURL + '/api/v1/files/images'
       },
       // 上传请求头：携带 token
       uploadHeader() {
-        const token = uni.getStorageSync('token')
         const header = {}
-        if (token) header['token'] = token
+        const token = session.getAccessToken()
+        if (token) header.Authorization = `Bearer ${token}`
+        if (env.communityCode) header['X-Tenant-Code'] = env.communityCode
         return header
       }
     },

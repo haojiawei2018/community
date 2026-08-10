@@ -6,95 +6,123 @@ import http from '../http.js'
 import env from '@/config/env.js'
 import mock from '@/mock/community.mock.js'
 
+function useForumMock() {
+  return env.useMock || !env.forumApiEnabled
+}
+
+function normalizePage(data, page, pageSize) {
+  const value = data || {}
+  const rows = value.rows || value.records || value.list || []
+  return {
+    rows,
+    total: Number(value.total) || rows.length,
+    page: Number(value.page) || page,
+    pageSize: Number(value.pageSize) || pageSize
+  }
+}
+
 export default {
+  /** 获取当前社区基础信息和功能开关 */
+  getBootstrap(options = {}) {
+    if (env.useMock) return mock.getBootstrap()
+    return http.get('/api/v1/bootstrap', options)
+  },
+
   /* ===================== 帖子相关 ===================== */
 
   /**
    * 获取帖子列表（分页）
-   * GET /forum/post/page
+   * GET /api/v1/posts
    * @param {Object} params - 查询参数
    * @param {number} [params.page=1] - 当前页码
    * @param {number} [params.pageSize=10] - 每页条数
    * @returns {Promise<{ rows: Array, total: number, page: number, pageSize: number }>}
    */
-  getPostList(params = {}) {
-    if (env.useMock) return mock.getContentList()
+  async getPostList(params = {}) {
     const { page = 1, pageSize = 10 } = params
-    return http.get('/forum/post/page', { params: { page, pageSize } })
+    if (useForumMock()) return mock.getPostList({ page, pageSize })
+    const data = await http.get('/api/v1/posts', { params })
+    return normalizePage(data, page, pageSize)
   },
 
   /**
    * 获取帖子详情
-   * GET /forum/post/{id}
+   * GET /api/v1/posts/{id}
    * @param {number|string} id - 帖子ID
    * @returns {Promise<object>} 帖子详情对象
    */
   getPostDetail(id) {
-    return http.get(`/forum/post/${id}`)
+    if (useForumMock()) return mock.getPostDetail(id)
+    return http.get(`/api/v1/posts/${id}`)
   },
 
   /**
    * 发布帖子
-   * POST /forum/post
+   * POST /api/v1/posts
    * @param {Object} data - 帖子内容
    * @param {string} data.title - 标题（必填）
    * @param {string} [data.content] - 正文内容
    * @returns {Promise<object>} 新建的帖子对象
    */
   publishPost(data) {
-    return http.post('/forum/post', data)
+    if (useForumMock()) return mock.publishPost(data)
+    return http.post('/api/v1/posts', data)
   },
 
   /* ===================== 评论相关 ===================== */
 
   /**
    * 获取帖子的评论列表（分页）
-   * GET /forum/comment/page/{postId}
+   * GET /api/v1/posts/{postId}/comments
    * @param {number|string} postId - 帖子ID
    * @param {Object} [params] - 分页参数
    * @param {number} [params.page=1] - 当前页码
    * @param {number} [params.pageSize=10] - 每页条数
    * @returns {Promise<{ rows: Array, total: number }>}
    */
-  getCommentList(postId, params = {}) {
+  async getCommentList(postId, params = {}) {
     const { page = 1, pageSize = 10 } = params
-    return http.get(`/forum/comment/page/${postId}`, {
-      params: { page, pageSize }
-    })
+    if (useForumMock()) return mock.getCommentList(postId, { page, pageSize })
+    const data = await http.get(`/api/v1/posts/${postId}/comments`, { params: { page, pageSize } })
+    return normalizePage(data, page, pageSize)
   },
 
   /**
    * 发表评论
-   * POST /forum/comment
+   * POST /api/v1/posts/{postId}/comments
    * @param {Object} data - 评论内容
    * @param {number|string} data.postId - 帖子ID（必填）
    * @param {string} data.content - 评论内容（必填）
    * @returns {Promise<object>} 新建的评论对象
    */
   addComment(data) {
-    return http.post('/forum/comment', data)
+    if (useForumMock()) return mock.addComment(data)
+    const { postId, ...payload } = data
+    return http.post(`/api/v1/posts/${postId}/comments`, payload)
   },
 
   /* ===================== 点赞相关 ===================== */
 
   /**
    * 点赞帖子
-   * POST /forum/post/like
+   * PUT /api/v1/posts/{postId}/like
    * @param {number|string} postId - 帖子ID
    * @returns {Promise<boolean>}
    */
   likePost(postId) {
-    return http.post('/forum/post/like', { postId })
+    if (useForumMock()) return mock.setPostLiked(postId, true)
+    return http.put(`/api/v1/posts/${postId}/like`)
   },
 
   /**
    * 取消点赞
-   * DELETE /forum/post/like
+   * DELETE /api/v1/posts/{postId}/like
    * @param {number|string} postId - 帖子ID
    * @returns {Promise<boolean>}
    */
   unlikePost(postId) {
-    return http.delete('/forum/post/like', { postId })
+    if (useForumMock()) return mock.setPostLiked(postId, false)
+    return http.delete(`/api/v1/posts/${postId}/like`)
   },
 
   /* ===================== 兼容旧接口（瀑布流/轮播图） ===================== */
@@ -104,8 +132,7 @@ export default {
    * @returns {Promise<{ list: Array, total: number }>}
    */
   getSwiperList() {
-    if (env.useMock) return mock.getSwiperList()
-    return http.get('/community/swiper')
+    return mock.getSwiperList()
   },
 
   /**
@@ -113,8 +140,8 @@ export default {
    * 实际指向帖子列表接口
    * @returns {Promise<{ rows: Array, total: number }>}
    */
-  getContentList() {
-    if (env.useMock) return mock.getContentList()
-    return http.get('/forum/post/page', { params: { page: 1, pageSize: 20 } })
+  async getContentList() {
+    const page = await this.getPostList({ page: 1, pageSize: 20 })
+    return { list: page.rows, total: page.total }
   }
 }

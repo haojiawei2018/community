@@ -5,41 +5,80 @@
 import http from '../http.js'
 import env from '@/config/env.js'
 import mock from '@/mock/user.mock.js'
+import session from '@/utils/session.js'
 
 export default {
   /**
    * 登录
-   * POST /forum/user/login
-   * @param {string} email - 邮箱
+   * POST /api/v1/auth/login
+   * @param {string} username - 登录账号
    * @param {string} password - 密码
    * @returns {Promise<{ token: string, user: object }>}
    */
-  login(email, password) {
-    if (env.useMock) return mock.getUserInfo()
-    return http.post('/forum/user/login', { email, password })
+  login(username, password) {
+    if (env.useMock) return mock.getTokenResponse()
+    return http.post('/api/v1/auth/login', {
+      username,
+      password,
+      deviceId: session.getDeviceId(),
+      clientType: session.getClientType()
+    })
   },
 
   /**
    * 注册
-   * POST /forum/user/register
-   * @param {string} email - 邮箱
+   * POST /api/v1/auth/register
+   * @param {string} username - 登录账号
    * @param {string} password - 密码
-   * @param {string} username - 用户名
+   * @param {string} nickname - 社区昵称
    * @returns {Promise<object>}
    */
-  register(email, password, username) {
-    if (env.useMock) return mock.getUserInfo()
-    return http.post('/forum/user/register', { email, password, username })
+  register(username, password, nickname) {
+    if (env.useMock) return mock.getTokenResponse({ username, nickname, displayName: nickname })
+    return http.post('/api/v1/auth/register', {
+      username,
+      password,
+      nickname,
+      deviceId: session.getDeviceId(),
+      clientType: session.getClientType()
+    })
   },
 
-  /**
-   * 获取用户信息（通过用户ID）
-   * GET /forum/user/{id}
-   * @param {number|string} id - 用户ID
-   * @returns {Promise<object>} 用户信息对象
-   */
-  getUserById(id) {
+  refresh() {
+    if (env.useMock) return mock.getTokenResponse()
+    return http.post('/api/v1/auth/refresh', {
+      refreshToken: session.getRefreshToken(),
+      deviceId: session.getDeviceId(),
+      clientType: session.getClientType()
+    }, { custom: { silent: true, authRedirect: false } })
+  },
+
+  async restoreSession() {
+    if (session.isAccessTokenUsable()) return session.getUser()
+    if (!session.getRefreshToken()) return null
+    try {
+      const tokenResponse = await this.refresh()
+      session.saveAuthSession(tokenResponse)
+      return tokenResponse.user || null
+    } catch (error) {
+      session.clearAuthSession()
+      return null
+    }
+  },
+
+  getCurrentUser(options = {}) {
     if (env.useMock) return mock.getUserInfo()
-    return http.get(`/forum/user/${id}`)
+    return http.get('/api/v1/users/me', options)
+  },
+
+  updateProfile(data) {
+    return http.put('/api/v1/users/me', data)
+  },
+
+  logout() {
+    if (env.useMock) return Promise.resolve()
+    return http.post('/api/v1/auth/logout', {
+      refreshToken: session.getRefreshToken()
+    }, { custom: { silent: true, authRedirect: false } })
   }
 }

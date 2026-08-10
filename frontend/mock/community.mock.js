@@ -143,13 +143,58 @@ const contentList = [
   }
 ]
 
+const posts = contentList.map((item, index) => Object.assign({
+  id: index + 1,
+  content: item.title || '分享一段有趣的游戏经历。',
+  images: [item.mainImage],
+  createTime: Date.now() - index * 3600 * 1000,
+  likeCount: 20 + index,
+  isLiked: false
+}, item))
+
+const comments = [
+  { id: 1, userName: '游戏搭子', content: '这个分享很有意思！', createTime: Date.now() - 20 * 60 * 1000 },
+  { id: 2, userName: '快乐玩家', content: '收藏了，晚点也去试试。', createTime: Date.now() - 10 * 60 * 1000 }
+]
+
 export default {
+  getBootstrap() {
+    return mockResponse({
+      communityId: '1',
+      communityCode: 'default',
+      communityName: '游戏社区',
+      logoUrl: '',
+      edition: 'COMMUNITY',
+      features: { circle: true, post: true, comment: true, moderation: true }
+    })
+  },
   // 获取轮播图列表
   getSwiperList() {
     return mockResponse({ list: swiperList, total: swiperList.length })
   },
+  getPostList({ page = 1, pageSize = 10 } = {}) {
+    const start = (page - 1) * pageSize
+    return mockResponse({ rows: posts.slice(start, start + pageSize), total: posts.length, page, pageSize })
+  },
+  getPostDetail(id) {
+    const value = posts.find((item) => String(item.id) === String(id)) || posts[0]
+    return mockResponse(Object.assign({}, value))
+  },
+  publishPost(data) {
+    return mockResponse(Object.assign({ id: Date.now(), status: 'PENDING_REVIEW' }, data))
+  },
+  getCommentList(postId, { page = 1, pageSize = 10 } = {}) {
+    const start = (page - 1) * pageSize
+    return mockResponse({ rows: comments.slice(start, start + pageSize), total: comments.length, page, pageSize })
+  },
+  addComment(data) {
+    return mockResponse(Object.assign({ id: Date.now(), createTime: Date.now() }, data))
+  },
+  setPostLiked(postId, liked) {
+    return mockResponse(liked)
+  },
   // 获取瀑布流内容列表
   getContentList() {
-    return mockResponse({ list: contentList, total: contentList.length })
+    return mockResponse({ list: posts, total: posts.length })
   }
 }

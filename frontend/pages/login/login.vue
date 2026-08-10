@@ -14,9 +14,10 @@
       <!-- Logo / 标题 -->
       <view class="login-header tn-text-center">
         <view class="logo-icon tn-flex tn-flex-row-center tn-flex-col-center">
-          <text class="tn-icon-game-fill tn-text-xxxl"></text>
+          <image v-if="community.logoUrl" class="community-logo" :src="community.logoUrl" mode="aspectFill"></image>
+          <text v-else class="tn-icon-game-fill tn-text-xxxl"></text>
         </view>
-        <view class="tn-text-bold tn-text-xxxl tn-margin-top">游戏社区</view>
+        <view class="tn-text-bold tn-text-xxxl tn-margin-top">{{ community.communityName || '游戏社区' }}</view>
         <view class="tn-color-gray tn-text-sm tn-margin-top-xs">发现更多游戏乐趣</view>
       </view>
 
@@ -30,8 +31,8 @@
           <input
             class="form-item__input"
             type="text"
-            v-model="formData.email"
-            placeholder="请输入邮箱"
+            v-model="formData.username"
+            placeholder="请输入账号"
             placeholder-class="form-item__placeholder"
             maxlength="50"
           />
@@ -55,7 +56,7 @@
           </view>
         </view>
 
-        <!-- 注册模式下追加用户名输入 -->
+        <!-- 注册模式下追加社区昵称 -->
         <view class="form-item" v-if="mode === 'register'">
           <view class="form-item__label">
             <text class="tn-icon-my-simple tn-text-lg"></text>
@@ -63,8 +64,8 @@
           <input
             class="form-item__input"
             type="text"
-            v-model="formData.username"
-            placeholder="请输入用户名"
+            v-model="formData.nickname"
+            placeholder="请输入社区昵称"
             placeholder-class="form-item__placeholder"
             maxlength="20"
           />
@@ -98,7 +99,8 @@
 </template>
 
 <script>
-  import { user } from '@/api/index.js'
+  import { user, community as communityApi } from '@/api/index.js'
+  import session from '@/utils/session.js'
 
   export default {
     name: 'login',
@@ -108,37 +110,61 @@
         mode: 'login',
         // 表单数据
         formData: {
-          email: '',
+          username: '',
           password: '',
-          username: ''
+          nickname: ''
         },
+        community: session.getCommunity(),
         // 是否明文显示密码
         showPassword: false,
         // 提交中
         loading: false
       }
     },
+    onLoad() {
+      this.loadCommunity()
+    },
     methods: {
+      async loadCommunity() {
+        try {
+          const value = await communityApi.getBootstrap({ custom: { silent: true } })
+          this.community = value || {}
+          session.saveCommunity(this.community)
+        } catch (error) {
+          this.community = session.getCommunity()
+        }
+      },
+
       // 切换登录/注册模式
       toggleMode() {
         this.mode = this.mode === 'login' ? 'register' : 'login'
-        this.formData.username = ''
+        this.formData.nickname = ''
       },
 
       // 表单校验
       validate() {
-        const { email, password, username } = this.formData
-        if (!email.trim()) {
-          uni.showToast({ title: '请输入邮箱', icon: 'none' })
+        const { username, password, nickname } = this.formData
+        if (!username.trim()) {
+          uni.showToast({ title: '请输入账号', icon: 'none' })
           return false
         }
-        if (password.length < 6) {
-          uni.showToast({ title: '密码至少 6 位', icon: 'none' })
+        if (!password) {
+          uni.showToast({ title: '请输入密码', icon: 'none' })
           return false
         }
-        if (this.mode === 'register' && !username.trim()) {
-          uni.showToast({ title: '请输入用户名', icon: 'none' })
-          return false
+        if (this.mode === 'register') {
+          if (!/^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(username.trim())) {
+            uni.showToast({ title: '账号须以字母开头，长度 4-32 位', icon: 'none' })
+            return false
+          }
+          if (password.length < 8 || password.length > 72) {
+            uni.showToast({ title: '密码长度须为 8-72 位', icon: 'none' })
+            return false
+          }
+          if (!nickname.trim()) {
+            uni.showToast({ title: '请输入社区昵称', icon: 'none' })
+            return false
+          }
         }
         return true
       },
@@ -148,26 +174,20 @@
         if (!this.validate()) return
         this.loading = true
         try {
-          const { email, password, username } = this.formData
+          const { username, password, nickname } = this.formData
           let res
           if (this.mode === 'login') {
-            res = await user.login(email.trim(), password)
+            res = await user.login(username.trim(), password)
           } else {
-            res = await user.register(email.trim(), password, username.trim())
+            res = await user.register(username.trim(), password, nickname.trim())
           }
-          // 接口返回但缺少 token，视为登录失败
-          if (!res || !res.token) {
-            console.error('[login] 返回数据缺少 token:', res)
-            uni.showToast({ title: '登录失败，请检查邮箱和密码', icon: 'none' })
+          if (!session.saveAuthSession(res)) {
+            console.error('[login] 返回数据缺少 accessToken:', res)
+            uni.showToast({ title: '登录失败，请检查账号和密码', icon: 'none' })
             return
           }
-          // 存储登录凭证与用户信息
-          uni.setStorageSync('token', res.token)
-          if (res.user) {
-            uni.setStorageSync('userInfo', res.user)
-          }
           uni.showToast({ title: this.mode === 'login' ? '登录成功' : '注册成功', icon: 'success' })
-          console.log('[login] 已写入 token 与 userInfo:', JSON.stringify(res && res.user))
+          console.log('[login] 已写入标准登录会话:', JSON.stringify(res && res.user))
           // 延迟跳转并切换到"我的"tab，确保刚登录用户能立刻看到自己的信息
           setTimeout(() => {
             uni.reLaunch({ url: '/pages/index/index?tab=4' })
@@ -175,7 +195,7 @@
         } catch (err) {
           // 响应拦截器已统一提示 message，这里兜底确保一定有提示
           console.error('[login] 提交失败：', err)
-          const msg = (err && (err.message || err.msg)) || (this.mode === 'login' ? '登录失败，请检查邮箱和密码' : '注册失败，请稍后重试')
+          const msg = (err && (err.message || err.msg)) || (this.mode === 'login' ? '登录失败，请检查账号和密码' : '注册失败，请稍后重试')
           // 拦截器可能已弹过 toast，这里仅在没有 message 时补充
           if (!err || (!err.message && !err.msg)) {
             uni.showToast({ title: msg, icon: 'none' })
@@ -225,6 +245,11 @@
       box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.15);
       text {
         color: #000000;
+      }
+      .community-logo {
+        width: 100%;
+        height: 100%;
+        border-radius: 30rpx;
       }
     }
     .tn-text-xxxl,

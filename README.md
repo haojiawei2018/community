@@ -12,6 +12,10 @@ community/
 └── sql/        # 开源业务数据库脚本
 ```
 
+## 移动端前端
+
+前端位于 `frontend`，基于 uni-app、Vue 2 和图鸟 UI，使用 HBuilderX 打开该目录运行。接口地址、社区编码和帖子接口开关见 [`frontend/README.md`](frontend/README.md)。
+
 ## 后端启动
 
 后端基于 Spring Boot 2.1.10、JDK 8 和 MyBatis-Plus。
