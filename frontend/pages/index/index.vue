@@ -4,13 +4,10 @@
     <!-- 二级页面 -->
     <view v-if="tabberPageLoadFlag[0]" :style="{display: currentTabbarIndex === 0 ? '' : 'none'}">
       <!-- 首页固定导航栏 + 切换栏 -->
-      <tn-nav-bar :isBack="false" :bottomShadow="false" backgroundColor="#F6F6F6">
+      <tn-nav-bar :isBack="false" :bottomShadow="false" backgroundColor="#F6F6F600">
         <view class="custom-nav tn-flex tn-flex-col-center tn-flex-row-left" @tap.stop="openUserModal">
-          <view class="custom-nav__logo" @click="tn('')">
-            <view class="game-pic" style="background-image:url('https://cdn.nlark.com/yuque/0/2024/png/280373/1717814074962-assets/web-upload/b68e6b5b-a8a2-4821-af06-5beda531901d.png')">
-              <view class="game-image">
-              </view>
-            </view>
+          <view class="custom-nav__title">
+            {{ communityInfo.communityName || '开源社区' }}
           </view>
           <view class="">
             <text class="tn-icon-down-triangle tn-color-gray--dark"></text>
@@ -18,19 +15,19 @@
         </view>
       </tn-nav-bar>
       <view class="tabs-fixed" :style="{top: vuex_custom_bar_height + 'px'}">
-        <view class="" style="background-color: #F6F6F6;padding: 10rpx 70rpx;">
+        <view class="home-tabs-panel">
           <tn-tabs-cool :list="fixedList" :current="current" :isScroll="false" activeColor="#000000" :barStyle="barStyle"
             inactiveColor="#000000" :bold="true" :fontSize="32" :badgeOffset="[20, 50]" @change="tabChange"
-            backgroundColor="#F6F6F6" :height="70"></tn-tabs-cool>
+            backgroundColor="#F6F6F600" :height="70"></tn-tabs-cool>
         </view>
       </view>
       <scroll-view class="custom-tabbar-page home-scroll" :style="{ paddingTop: 'calc(' + vuex_custom_bar_height + 'px + 90rpx)' }" scroll-y enable-back-to-top @scrolltolower="tabbarPageScrollLower">
-        <page-a ref="pageA"></page-a>
+        <page-a ref="pageA" :community-info="communityInfo"></page-a>
       </scroll-view>
     </view>
     <view v-if="tabberPageLoadFlag[1]" :style="{display: currentTabbarIndex === 1 ? '' : 'none'}">
       <scroll-view class="custom-tabbar-page" scroll-y enable-back-to-top @scrolltolower="tabbarPageScrollLower">
-        <page-b ref="pageB"></page-b>
+        <page-b ref="pageB" :community-info="communityInfo"></page-b>
       </scroll-view>
     </view>
     <view v-if="tabberPageLoadFlag[2]" :style="{display: currentTabbarIndex === 2 ? '' : 'none'}">
@@ -45,24 +42,10 @@
     </view>
     <view v-if="tabberPageLoadFlag[4]" :style="{display: currentTabbarIndex === 4 ? '' : 'none'}">
       <scroll-view class="custom-tabbar-page" scroll-y enable-back-to-top @scrolltolower="tabbarPageScrollLower">
-        <page-e ref="pageE"></page-e>
+        <page-e ref="pageE" @open-discover="openDiscoverSection"></page-e>
       </scroll-view>
     </view>
-    <!-- 底部导航栏 -->
-    <view class="tabbar dd-glass">
-      <view class="tabbar__list">
-        <block v-for="(item, index) in tabbar" :key="index">
-          <view :id="`tabbar_item_${index}`" class="tabbar__item"
-            :class="[{'tabbar__item--active': index === currentTabbarIndex}]" @click="changeTabbar(index)">
-            <!-- 用字体图标的方式 -->
-            <view class="tabbar__item__icon" :class="[item.icon]"></view>
-            <!-- 底部文字，需要自行显示出来，显示出来后适当调整下位置-->
-            <!-- <view class="tabbar__item__text">{{ item.name }}</view> -->
-          </view>
-        </block>
-      </view>
-      <view class="tabbar__select-active-bg" :animation="activeBgAnimation"></view>
-    </view>
+    <creative-tabbar :current-tab="currentTabbarIndex" :items="tabbar" @changeTabbar="changeTabbar"></creative-tabbar>
   </view>
 </template>
 
@@ -72,6 +55,9 @@
   import PageC from './component/PageC.vue'
   import PageD from './component/PageD.vue'
   import PageE from './component/PageE.vue'
+  import CreativeTabbar from './component/CreativeTabbar.vue'
+  import { community } from '@/api/index.js'
+  import session from '@/utils/session.js'
 
   export default {
     components: {
@@ -79,15 +65,17 @@
       PageB,
       PageC,
       PageD,
-      PageE
+      PageE,
+      CreativeTabbar
     },
     data() {
       return {
-        activeBgPositionLeft: 0,
+        publishAnimating: false,
         prevTabbarIndex: 0,
         currentTabbarIndex: 0,
-        tabbarRectInfo: [],
-        activeBgAnimation: {},
+        communityInfo: {
+          communityName: '开源社区'
+        },
         // 首页顶部切换栏
         current: 0,
         barStyle: {
@@ -95,9 +83,9 @@
         },
         fixedList: [
           {name: '推荐'},
-          {name: '热门'},
-          {name: '独家'},
-          {name: '热卖'}
+          {name: '最新'},
+          {name: '热门'}
+          // {name: '关注'}
         ],
         tabbar: [{
             name: '首 页',
@@ -110,8 +98,9 @@
             image: '/static/tabbar/tn-tabbar1.png'
           },
           {
-            name: '排行榜',
-            icon: 'tn-icon-mansion',
+            name: '发 布',
+            icon: 'tn-icon-add',
+            action: 'publish',
             image: '/static/tabbar/tn-tabbar2.png'
           },
           {
@@ -133,9 +122,9 @@
     computed: {
     },
     onLoad(options) {
+      this.loadCommunityInfo()
       // 支持 tab=xxx 参数，用于登录成功后直接切到"我的"
       const index = Number(options.tab || options.index || 0)
-      // 根据底部tabbar菜单列表设置对应页面的加载情况
       this.tabberPageLoadFlag = this.tabbar.map((item, tabbar_index) => {
         return index === tabbar_index
       })
@@ -143,7 +132,6 @@
     },
     onReady() {
       this.$nextTick(() => {
-        this.getTabbarItemInfo()
         // 如果首次进入就处于我的tab，尝试刷新用户信息（v-if 渲染需要时间，加兜底）
         if (this.currentTabbarIndex === 4) {
           this.$nextTick(() => {
@@ -161,11 +149,33 @@
       })
     },
     methods: {
+      openDiscoverSection(sectionIndex) {
+        this._switchTabbarPage(1)
+        this.prevTabbarIndex = this.currentTabbarIndex
+        this.currentTabbarIndex = 1
+        this.$nextTick(() => {
+          if (this.$refs.pageB && this.$refs.pageB.tabChange) {
+            this.$refs.pageB.tabChange(Number(sectionIndex) || 0)
+          }
+        })
+      },
+      async loadCommunityInfo() {
+        try {
+          const data = await community.getBootstrap({ custom: { silent: true } })
+          if (data) {
+            this.communityInfo = data
+            session.saveCommunity(data)
+          }
+        } catch (error) {
+          console.error('[Index] 社区信息加载失败:', error)
+        }
+      },
       // 首页顶部切换栏
       tabChange(index) {
         this.current = index
         if (this.$refs.pageA) {
           this.$refs.pageA.current = index
+          this.$refs.pageA.fetchPostList && this.$refs.pageA.fetchPostList(true)
         }
       },
       // 打开用户弹窗
@@ -185,6 +195,10 @@
         if (this.currentTabbarIndex === 0) {
           // 触底加载更多帖子
           this.$refs.pageA.fetchPostList && this.$refs.pageA.fetchPostList(false)
+        } else if (this.currentTabbarIndex === 1 && this.$refs.pageB) {
+          this.$refs.pageB.loadMore && this.$refs.pageB.loadMore()
+        } else if (this.currentTabbarIndex === 3 && this.$refs.pageD) {
+          this.$refs.pageD.loadMore && this.$refs.pageD.loadMore()
         }
       },
 
@@ -203,75 +217,47 @@
         }
       },
 
-      // 获取底部元素的位置
-      getTabbarItemInfo() {
-        const view = uni.createSelectorQuery().in(this)
-        // boundingClientRect 返回的 left 是相对视口的，先获取 tabbar
-        // 容器的位置，再将每个 item 换算为容器内坐标。
-        view.select('.tabbar').boundingClientRect()
-        for (let i = 0; i < this.tabbar.length; i++) {
-          view.select('#tabbar_item_' + i).boundingClientRect()
-        }
-        view.exec(res => {
-          if (!res || res.length !== this.tabbar.length + 1 || res.some(item => !item)) {
-            setTimeout(() => {
-              this.getTabbarItemInfo()
-            }, 10)
-            return
-          }
-
-          const tabbarLeft = res[0].left
-          // 重新测量时直接替换，避免旧坐标重复累加。
-          this.tabbarRectInfo = res.slice(1).map((item) => {
-            return {
-              left: item.left - tabbarLeft,
-              width: item.width
-            }
-          })
-          this.updateActiveBgPosition(true)
-        })
-      },
-      // 更新激活时背景的位置
-      updateActiveBgPosition(init = false) {
-        if (!this.tabbarRectInfo.length) return
-        const currentItem = this.tabbarRectInfo[this.currentTabbarIndex]
-        if (!currentItem) return
-        const {
-          width,
-          left
-        } = currentItem
-        const oldActiveBgPositionLeft = this.activeBgPositionLeft
-        this.activeBgPositionLeft = left + ((width - uni.upx2px(90)) / 2)
-        if (!init) {
-          const animation = uni.createAnimation({
-            duration: 160,
-            timingFunction: "linear"
-          })
-          animation.top(uni.upx2px(16)).left(oldActiveBgPositionLeft + ((this.activeBgPositionLeft -
-            oldActiveBgPositionLeft) / 2)).scale(1).step()
-          animation.left(this.activeBgPositionLeft).top(uni.upx2px(16)).scale(1).step()
-          this.activeBgAnimation = animation.export()
-        } else {
-          const animation = uni.createAnimation({
-            duration: 160,
-            timingFunction: "linear"
-          })
-          animation.left(this.activeBgPositionLeft).top(uni.upx2px(16)).step()
-          this.activeBgAnimation = animation.export()
-        }
-
-      },
       // 修改当前选中的tabbar
       changeTabbar(index) {
+        const item = this.tabbar[index]
+        if (item && item.action === 'publish') {
+          if (this.publishAnimating) return
+          this.publishAnimating = true
+          // 中间按钮是快捷操作，不改变当前选中的栏目。
+          // #ifdef MP-WEIXIN
+          wx.vibrateShort()
+          // #endif
+          // 给按压回弹动画留出可见时间，再进入发布页。
+          setTimeout(() => {
+            uni.navigateTo({
+              url: '/pages/post/publish',
+              complete: () => {
+                setTimeout(() => {
+                  this.publishAnimating = false
+                }, 80)
+              }
+            })
+          }, 180)
+          return
+        }
         if (this.currentTabbarIndex === index) return
         this._switchTabbarPage(index)
         this.prevTabbarIndex = this.currentTabbarIndex
         this.currentTabbarIndex = index
         this.$nextTick(() => {
-          this.updateActiveBgPosition()
           // 切换到"我的"（第4个index=4）时主动刷新用户信息
           // v-if 懒加载渲染需要时间，双 nextTick + setTimeout 兜底
-          if (index === 4) {
+          if (index === 3) {
+            this.$nextTick(() => {
+              if (this.$refs.pageD && this.$refs.pageD.refresh) {
+                this.$refs.pageD.refresh()
+              } else {
+                setTimeout(() => {
+                  if (this.$refs.pageD && this.$refs.pageD.refresh) this.$refs.pageD.refresh()
+                }, 200)
+              }
+            })
+          } else if (index === 4) {
             this.$nextTick(() => {
               if (this.$refs.pageE && this.$refs.pageE.refresh) {
                 this.$refs.pageE.refresh()
@@ -299,12 +285,22 @@
     width: 100%;
     height: 100vh;
     position: relative;
+    overflow: hidden;
 
     .custom-tabbar-page {
       width: 100%;
       height: 100vh;
       box-sizing: border-box;
       background-color: #F6F6F6;
+    }
+
+    .home-scroll {
+      background: linear-gradient(90deg, #c9febf 0%, #eef8eb 58%, #F6F6F6 100%);
+    }
+
+    .home-tabs-panel {
+      padding: 10rpx 70rpx;
+      background: transparent;
     }
     /* 首页scroll-view需要给固定的导航栏和tabs留出空间 */
     .custom-tabbar-page-with-tabs {
@@ -318,12 +314,25 @@
       left: 0;
       width: 100%;
       z-index: 997;
-      background-color: #F6F6F6;
+      background: transparent;
     }
 
     /* 自定义导航栏内容 */
     .custom-nav {
       height: 100%;
+
+      &__title {
+        max-width: 300rpx;
+        margin-left: 30rpx;
+        margin-right: 10rpx;
+        overflow: hidden;
+        color: #111111;
+        font-size: 34rpx;
+        font-weight: 700;
+        line-height: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
       &__logo {
         margin: auto 5rpx;
@@ -421,6 +430,29 @@
           color: #202020;
         }
 
+        &--publish {
+          .tabbar__item__icon {
+            top: 14rpx;
+            left: 50%;
+            right: auto;
+            width: 88rpx;
+            height: 88rpx;
+            line-height: 88rpx;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            background-color: #0F0F0F;
+            color: #FFFFFF;
+            font-size: 42rpx;
+            box-shadow: 0 10rpx 24rpx rgba(0, 0, 0, 0.18);
+          }
+        }
+
+        &--publish-tap {
+          .tabbar__item__icon {
+            animation: tabbar-publish-tap 260ms ease-out both;
+          }
+        }
+
         &__text {
           position: absolute;
           left: 0;
@@ -430,6 +462,25 @@
           bottom: calc(26rpx + env(safe-area-inset-bottom));
           transition: 0.5s;
           opacity: 0;
+        }
+      }
+
+      @keyframes tabbar-publish-tap {
+        0% {
+          transform: translateX(-50%) scale(1);
+          box-shadow: 0 10rpx 24rpx rgba(0, 0, 0, 0.18);
+        }
+        42% {
+          transform: translateX(-50%) scale(0.78);
+          box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.12);
+        }
+        75% {
+          transform: translateX(-50%) scale(1.12);
+          box-shadow: 0 0 0 16rpx rgba(15, 15, 15, 0.10);
+        }
+        100% {
+          transform: translateX(-50%) scale(1);
+          box-shadow: 0 10rpx 24rpx rgba(0, 0, 0, 0.18);
         }
       }
 

@@ -37,8 +37,9 @@ logging:
 community:
   id: ${COMMUNITY_ID:1}
   code: '${COMMUNITY_CODE:default}'
-  name: '${COMMUNITY_NAME:开源游戏社区}'
+  name: '${COMMUNITY_NAME:开源社区}'
   logo-url: '${COMMUNITY_LOGO_URL:}'
+  default-avatar-url: '${COMMUNITY_DEFAULT_AVATAR_URL:https://itzxiu.oss-cn-chengdu.aliyuncs.com/images/2026/08/12/3abaa404cc3a4adaab49318f0645d146.png}'
   security:
     access-token-secret: '${COMMUNITY_ACCESS_TOKEN_SECRET:dev-only-change-this-access-token-secret}'
     access-token-seconds: ${COMMUNITY_ACCESS_TOKEN_SECONDS:7200}

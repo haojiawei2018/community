@@ -1,673 +1,409 @@
 <template>
   <view class="pagesE tn-safe-area-inset-bottom">
-    <!-- 顶部自定义导航 -->
     <tn-nav-bar :isBack="false" :bottomShadow="false" backgroundColor="#F6F6F600">
       <view class="custom-nav tn-flex tn-flex-col-center tn-flex-row-left">
-        <!-- <view class="custom-nav__logo" @click="tn('')">
-          <view class="tn-icon-tree leaf-color"></view>
-        </view> -->
-        <view class="">
-          <text class="tn-margin-left tn-text-bold tn-text-xl leaf-color">我 的</text>
-        </view>
+        <text class="tn-margin-left tn-text-bold tn-text-xl leaf-color">我 的</text>
       </view>
     </tn-nav-bar>
-    
-    <!-- 顶部渐变底色，需要的显示出来即可 -->
-    <view class="mine-fixed">
-    </view>
-    
-    <view class="" :style="{paddingTop: vuex_custom_bar_height + 'px'}" style="z-index: 1 !important;position: relative;">
-      <!-- 图标logo/头像 -->
+
+    <!-- 保留原模板顶部渐变和头像区 -->
+    <view class="mine-fixed"></view>
+    <view :style="{paddingTop: vuex_custom_bar_height + 'px'}" class="mine-content">
       <view class="tn-flex tn-flex-row-between tn-flex-col-center tn-margin">
         <view class="justify-content-item" @click="handleUserClick">
           <view class="tn-flex tn-flex-col-center tn-flex-row-left">
             <view class="logo-pic">
-              <view class="logo-image" :style="avatarStyle">
-              </view>
+              <view class="logo-image" :style="avatarStyle"></view>
             </view>
             <view class="tn-padding-right">
               <view class="tn-padding-right tn-padding-left-sm">
-                <text class="tn-color-black tn-text-xl tn-text-bold">{{ userInfo.nickname || userInfo.username || '点击登录' }}</text>
+                <text class="tn-color-black tn-text-xl tn-text-bold">{{ displayName }}</text>
               </view>
-              <view class="tn-padding-right tn-padding-top-sm tn-padding-left-sm tn-text-ellipsis" v-if="isLoggedIn">
-                <text class="tn-color-gray--dark">Uid: {{ userInfo.uid || userInfo.id || '--' }}</text>
-                <text class="tn-color-gray--dark tn-padding-left-xs tn-icon-qr-code"></text>
+              <view v-if="isLoggedIn" class="tn-padding-right tn-padding-top-sm tn-padding-left-sm tn-text-ellipsis profile-subtitle">
+                <text class="tn-color-gray--dark">{{ userInfo.bio || '这个人很低调，还没有填写简介' }}</text>
               </view>
-              <view class="tn-padding-right tn-padding-top-sm tn-padding-left-sm tn-text-ellipsis" v-else>
-                <text class="tn-color-gray--dark">登录后体验更多功能</text>
+              <view v-else class="tn-padding-right tn-padding-top-sm tn-padding-left-sm tn-text-ellipsis">
+                <text class="tn-color-gray--dark">登录后管理帖子和个人资料</text>
               </view>
             </view>
-
           </view>
         </view>
-        <view class="justify-content-item">
-          <view class="tn-icon-install tn-color-gray--dark" style="font-size: 50rpx;opacity: 0.5;">
+        <view class="justify-content-item" @click="openProfileEditor">
+          <view class="tn-icon-install tn-color-gray--dark setting-icon"></view>
+        </view>
+      </view>
+
+      <!-- 我的帖子、获赞、评论、新帖快捷入口暂时隐藏，后续需要时可恢复。
+      <view class="tn-flex tn-flex-row-between quick-actions">
+        <view class="tn-padding-sm tn-radius" @click="goMyPosts">
+          <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
+            <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center quick-icon">
+              <view class="tn-icon-edit-form"></view>
+            </view>
+            <view class="tn-text-center"><text class="tn-text-ellipsis">帖 子</text></view>
+          </view>
+        </view>
+        <view class="tn-padding-sm tn-radius">
+          <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
+            <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center quick-icon">
+              <view class="tn-icon-like-fill"></view>
+            </view>
+            <view class="tn-text-center"><text class="tn-text-ellipsis">获 赞</text></view>
+          </view>
+        </view>
+        <view class="tn-padding-sm tn-radius">
+          <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
+            <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center quick-icon">
+              <view class="tn-icon-message-fill"></view>
+            </view>
+            <view class="tn-text-center"><text class="tn-text-ellipsis">评 论</text></view>
+          </view>
+        </view>
+        <view class="tn-padding-sm tn-radius" @click="goPublish">
+          <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
+            <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center quick-icon">
+              <view class="tn-icon-add"></view>
+            </view>
+            <view class="tn-text-center"><text class="tn-text-ellipsis">新 帖</text></view>
           </view>
         </view>
       </view>
-      
-      <!-- 没有授权，则显示这个授权按钮-->
-      <!-- <view class="tn-flex tn-flex-row-between" @click="tn('/minePages/login')">
-        <view class="tn-flex-1 justify-content-item tn-margin-xs tn-text-center">
-          <tn-button shape="round" backgroundColor="#000000" fontColor="#ffffff" padding="36rpx 0" width="40%">
-            <text class="tn-icon-wechat tn-padding-right-xs tn-text-xl"></text>
-            <text class="">授权登录</text>
-          </tn-button>
-        </view>
-      </view> -->
+      -->
 
-      
-      <!-- 更多信息-->
-      <!-- 方式12 start-->
-      <view class="">
-        
-        <view class="tn-flex tn-flex-row-between" style="padding: 30rpx 60rpx 10rpx 60rpx;">
-          <view class="tn-padding-sm tn-radius" @click="tn('../xxx/xxx')">
-            <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
-              <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center" style="background-color: #000000;">
-                <view class="tn-icon-star"></view>
-              </view>
-              <view class="tn-text-center">
-                <text class="tn-text-ellipsis">收 藏</text>
-              </view>
+      <!-- 恢复原模板“应用服务”宫格，将入口替换为社区真实功能 -->
+      <view class="service-card">
+        <view class="tn-flex tn-flex-row-between tn-flex-col-center service-header">
+          <view class="tn-text-lg tn-text-bold">应用服务</view>
+          <view class="tn-color-gray tn-text-sm">社区功能</view>
+        </view>
+        <view class="tn-flex tn-flex-wrap service-grid">
+          <view v-for="item in serviceLinks" :key="item.key" class="service-item" @click="openService(item.key)">
+            <view class="service-icon" :class="item.color">
+              <text :class="item.icon"></text>
             </view>
+            <view class="service-name">{{ item.title }}</view>
           </view>
-          <view class="tn-padding-sm tn-radius" @click="tn('../sign/sign')">
-            <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
-              <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center" style="background-color: #000000;">
-                <view class="tn-icon-calendar"></view>
-              </view>
-              <view class="tn-text-center">
-                <text class="tn-text-ellipsis">打 卡</text>
-              </view>
-            </view>
-          </view>
-          <view class="tn-padding-sm tn-radius" @click="goPublish">
-            <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
-              <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center" style="background-color: #000000;">
-                <view class="tn-icon-edit-form"></view>
-              </view>
-              <view class="tn-text-center">
-                <text class="tn-text-ellipsis">发 布</text>
-              </view>
-            </view>
-          </view>
-          <view class="tn-padding-sm tn-radius" @click="tn('../xxx/xxx')">
-            <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center">
-              <view class="icon13__item--icon tn-flex tn-flex-row-center tn-flex-col-center" style="background-color: #000000;">
-                <view class="tn-icon-circle-lack"></view>
-              </view>
-              <view class="tn-text-center">
-                <text class="tn-text-ellipsis">圈 子</text>
-              </view>
-            </view>
-          </view>
-          
         </view>
       </view>
-      
-      <view class="tn-bg-white" style="border-radius: 18rpx;margin: 20rpx 30rpx 20rpx 30rpx;">
-        <view class="tn-flex tn-flex-row-between tn-padding-top-sm tn-padding-left tn-padding-right" @click="tn('/minePages/xxx')">
-          <view class="justify-content-item tn-text-lg tn-text-bold tn-margin-top-sm">
-            应用服务
-          </view>
-          <view class="justify-content-item tn-text-sm tn-color-gray tn-margin-top-sm">
-            <text class="tn-padding-xs">全部</text>
-            <text class="tn-icon-right"></text>
-          </view>
-        </view>
-        <view class="tn-flex tn-flex-wrap tn-padding-top-sm">
-          <view v-for="(item, index) in linksData" :key="index" style="width: 25%;">
-            <view class="tn-margin-bottom tn-margin-top-sm"  @click="tn('/minePages/xxx')">
-              <view class="tn-flex tn-flex-direction-column tn-flex-row-center tn-flex-col-center" style="color: #484848;">
-                <!-- 预留的图片形式 -->
-                <view class="icon12__item--icon tn-flex tn-flex-row-center tn-flex-col-center" :style="'background-image:url('+ item.url +');background-size:100% 100%;background-size: cover;'">
-                </view>
-                <!-- 字体图标形式-->
-                <!-- <view class="icon12__item--icon tn-flex tn-flex-row-center tn-flex-col-center" :class="['tn-cool-bg-color-' + item.color]">
-                  <view class="tn-icon-my-simple-fill"></view>
-                </view> --> 
-                <view class="tn-text-center tn-margin-top-xs">
-                  <text class="tn-text-ellipsis tn-text-sm">{{ item.title }}</text>
-                </view>
-              </view>
-            </view>
-         </view>
-        </view>
-        <!-- 方式12 end-->
-      
-      </view>
 
-      <!-- 更多信息-->
-      <view class="tn-padding-top-sm tn-padding-bottom-sm tn-bg-white" style="border-radius: 18rpx;margin: 20rpx 30rpx 20rpx 30rpx;">
+      <view class="tn-padding-top-sm tn-padding-bottom-sm tn-bg-white common-card">
+        <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx" @click="openProfileEditor">
+          <view class="tn-flex tn-flex-col-center">
+            <view class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center"><view class="tn-icon-my-circle-fill"></view></view>
+            <view class="tn-margin-left-sm tn-flex-1 tn-text-lg">编辑资料</view>
+            <view class="tn-color-gray tn-icon-right"></view>
+          </view>
+        </tn-list-cell>
         <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx" @click="copySource">
           <view class="tn-flex tn-flex-col-center">
-            <view
-              class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center">
-              <view class="tn-icon-discover-fill"></view>
-            </view>
+            <view class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center"><view class="tn-icon-discover-fill"></view></view>
             <view class="tn-margin-left-sm tn-flex-1 tn-text-lg">开源地址</view>
             <view class="tn-color-gray tn-icon-right"></view>
           </view>
         </tn-list-cell>
-        <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx" @click="tn('/minePages/public')">
-          <view class="tn-flex tn-flex-col-center">
-            <view
-              class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center">
-              <view class="tn-icon-bookmark-fill"></view>
-            </view>
-            <view class="tn-margin-left-sm tn-flex-1 tn-text-lg">关注我们</view>
-            <view class="tn-color-gray tn-icon-right"></view>
-          </view>
-        </tn-list-cell>
-      </view>
-      
-      
-      <view class="tn-padding-top-sm tn-padding-bottom-sm tn-bg-white" style="border-radius: 18rpx;margin: 20rpx 30rpx 20rpx 30rpx;">
-        <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx">
-          <button class="tn-flex tn-flex-col-center tn-button--clear-style" open-type="contact">
-            <view
-              class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center">
-              <view class="tn-icon-service-fill"></view>
-            </view>
-            <view class="tn-flex tn-flex-row-between" style="width: 100%;">
-              <view class="tn-margin-left-sm tn-text-lg">在线客服</view>
-              <view class="tn-color-gray tn-icon-right"></view>
-            </view>
-          </button>
-        </tn-list-cell>
         <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx">
           <button class="tn-flex tn-flex-col-center tn-button--clear-style" open-type="feedback">
-            <view
-              class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center">
-              <view class="tn-icon-tip-fill"></view>
-            </view>
+            <view class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center"><view class="tn-icon-tip-fill"></view></view>
             <view class="tn-flex tn-flex-row-between" style="width: 100%;">
               <view class="tn-margin-left-sm tn-text-lg">问题反馈</view>
               <view class="tn-color-gray tn-icon-right"></view>
             </view>
           </button>
         </tn-list-cell>
-        <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx" @click="callPhoneNumber" data-number="18266666666">
-          <view class="tn-flex tn-flex-col-center">
-            <view
-              class="icon1__item--icon tn-flex tn-flex-row-center tn-flex-col-center">
-              <view class="tn-icon-tel-circle-fill"></view>
-            </view>
-            <view class="tn-margin-left-sm tn-flex-1 tn-text-lg">技术热线</view>
-            <view
-              class="tn-margin-left-sm tn-padding-left-xs tn-padding-right-xs tn-bg-gray--light tn-text-sm tn-round" style="color: #000000;">
-              188****8888</view>
-          </view>
-        </tn-list-cell>
       </view>
 
-      <!-- 退出登录（仅登录状态显示） -->
-      <view v-if="isLoggedIn" class="tn-padding-top-sm tn-padding-bottom-sm tn-bg-white" style="border-radius: 18rpx;margin: 20rpx 30rpx 20rpx 30rpx;">
+      <!-- 原模板“关注我们、在线客服、技术热线、图鸟科技支持”暂不属于社区 P0，已注释后置。 -->
+
+      <view v-if="isLoggedIn" class="tn-padding-top-sm tn-padding-bottom-sm tn-bg-white common-card">
         <tn-list-cell :hover="true" :unlined="true" :radius="true" :fontSize="30" padding="26rpx 30rpx" @click="handleLogout">
           <view class="tn-flex tn-flex-col-center tn-flex-row-center">
             <view class="tn-icon-logout tn-text-lg"></view>
-            <view class="tn-margin-left-sm tn-text-lg" style="color: #E53935;">退出登录</view>
+            <view class="tn-margin-left-sm tn-text-lg logout-text">退出登录</view>
           </view>
         </tn-list-cell>
       </view>
-      
-      
-      <view class="tn-text-center tn-margin-top-xl tn-padding-top tn-padding-bottom-xl">
-      	<view @click="navTuniaoUI">
-          <text class="tn-padding-xs" style="color: #000000;">图鸟科技</text>
-          <text class="tn-color-gray">提供技术支持</text>
-        </view>
-      </view>
 
+      <view class="opensource-signature">程序员小程 开源作品</view>
     </view>
 
-    
-    <tn-modal v-model="show1" :custom="true">
-      <view class="custom-modal-content">
-        <image @tap="previewQRCodeImage" src='https://resource.tuniaokj.com/images/advertise/qrcode.jpg' mode='aspectFill' style="width: 100%;"></image>
-        <view class="tn-text-center tn-padding-top" @click="copyWechat">
-          <text class="">我的好友码：10262008 </text>
-          <text class="tn-color-blue--disabled tn-padding-left-xs tn-text-df tn-icon-copy"></text>
-          </view>
-        <!-- <view class="tn-text-center tn-padding-top tn-text-lg">点击上图，可识别微信二维码</view> -->
-        
-        <!-- 悬浮按钮-->
-        <view class="tn-flex tn-padding">
-          <view class="tn-flex-1 justify-content-item tn-text-center">
-            <tn-button backgroundColor="#000000 " padding="40rpx 0" width="100%" :fontSize="28" fontColor="#FFFFFF" shape="round" @click="tn('')">
-              <text class="">保存到相册</text>
-            </tn-button>
-          </view>
+    <tn-modal v-model="showProfileEditor" :custom="true">
+      <view class="profile-modal">
+        <view class="tn-text-xl tn-text-bold tn-text-center">编辑个人资料</view>
+        <view class="profile-avatar-editor" @click="changeAvatar">
+          <image class="profile-avatar-image" :src="profileForm.avatarUrl || defaultAvatar" mode="aspectFill"></image>
+          <view class="profile-avatar-tip">{{ avatarUploading ? '上传中...' : '更换头像' }}</view>
         </view>
-        
+        <view class="form-label">社区昵称</view>
+        <input v-model="profileForm.displayName" class="form-input" maxlength="32" placeholder="请输入社区昵称" />
+        <view class="form-label">个人简介</view>
+        <textarea v-model="profileForm.bio" class="form-textarea" maxlength="255" placeholder="介绍一下自己" />
+        <view class="tn-flex tn-margin-top-lg">
+          <view class="modal-button modal-button--light" @click="showProfileEditor = false">取消</view>
+          <view class="modal-button modal-button--dark" @click="saveProfile">{{ profileSaving ? '保存中' : '保存' }}</view>
+        </view>
       </view>
     </tn-modal>
 
     <view class="tn-tabbar-height"></view>
-
   </view>
 </template>
 
 <script>
-  import { user } from '@/api/index.js'
+  import { user, file } from '@/api/index.js'
   import session from '@/utils/session.js'
-
-  // 日志前缀，便于在控制台过滤
-  const LOG_TAG = '[PageE]'
+  import { DEFAULT_AVATAR_URL } from '@/config/defaults.js'
 
   export default {
     name: 'PageE',
     data() {
       return {
-        show1: false,
-        // 用户信息（从本地存储读取）
         userInfo: {},
-        // 是否已登录
         isLoggedIn: false,
-
-        linksData: [{
-            url: 'https://cdn.nlark.com/yuque/0/2022/jpeg/280373/1647138042384-assets/web-upload/d3907e69-e568-449f-8ac0-a44e7682b574.jpeg',
-            title: '预算沟通',
-            icon:'platform-fill',
-            color:'1',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2022/jpeg/280373/1647138042421-assets/web-upload/17a3bee9-461b-467b-9ccc-2e1e39ab44a1.jpeg',
-            title: '品牌荣誉',
-            icon:'platform-fill',
-            color:'2',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2022/jpeg/280373/1647138042440-assets/web-upload/91b7ad5a-aaec-4936-bccd-cf4ad5c5df54.jpeg',
-            title: '上线模板',
-            icon:'platform-fill',
-            color:'3',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2022/jpeg/280373/1647138042374-assets/web-upload/9e334ff4-a876-4684-8f61-f1d79ecd7b7c.jpeg',
-            title: '开发项目',
-            icon:'platform-fill',
-            color:'4',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1711183180435-assets/web-upload/a091b9f2-c587-412d-96c4-adbedbb0a889.jpeg',
-            title: '联系作者',
-            icon:'platform-fill',
-            color:'5',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1711182957902-assets/web-upload/c9ac3d07-81cb-40a6-9944-31a8e5f0386b.jpeg',
-            title: '文件资源',
-            icon:'platform-fill',
-            color:'6',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1711186780372-assets/web-upload/a7f072c1-5161-42ed-b707-0baa473936e5.jpeg',
-            title: '图鸟商城',
-            icon:'platform-fill',
-            color:'7',
-            path: ''
-          },
-          {
-            url: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1711184777099-assets/web-upload/861176d1-4245-415e-8869-3246293a3344.jpeg',
-            title: '发现更多',
-            icon:'platform-fill',
-            color:'8',
-            path: ''
-          }
+        summary: { postCount: 0, receivedLikeCount: 0, commentCount: 0 },
+        serviceLinks: [
+          { key: 'posts', title: '我的帖子', icon: 'tn-icon-edit-form', color: 'service-icon--pink' },
+          { key: 'sign', title: '签到', icon: 'tn-icon-calendar', color: 'service-icon--purple' },
+          { key: 'ranking', title: '排行榜', icon: 'tn-icon-order', color: 'service-icon--blue' },
+          { key: 'activity', title: '社区活动', icon: 'tn-icon-flag-fill', color: 'service-icon--orange' }
         ],
+        showProfileEditor: false,
+        profileSaving: false,
+        avatarUploading: false,
+        defaultAvatar: DEFAULT_AVATAR_URL,
+        profileForm: { displayName: '', bio: '', avatarUrl: '' }
       }
     },
     computed: {
-      // 头像样式：已登录用用户头像，无图时用兜底（按id取模稳定展示）
+      displayName() {
+        return this.userInfo.displayName || this.userInfo.nickname || this.userInfo.username || '点击登录'
+      },
       avatarStyle() {
-        const fallbackAvatars = [
-          'https://resource.tuniaokj.com/images/flower/guye1.jpg',
-          'https://cdn.nlark.com/yuque/0/2022/jpeg/280373/1668321603396-assets/web-upload/a7f7dd1d-3618-4888-a20c-6b55a6aa69a4.jpeg',
-          'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1711183180435-assets/web-upload/a091b9f2-c587-412d-96c4-adbedbb0a889.jpeg'
-        ]
-        const avatar = this.userInfo.avatarUrl || this.userInfo.avatar || this.userInfo.userImage
-        const id = Number(this.userInfo.userId || this.userInfo.id || this.userInfo.uid || 0) || 0
-        const url = avatar || fallbackAvatars[id % fallbackAvatars.length]
-        return `background-image:url('${url}');width: 110rpx;height: 110rpx;background-size: cover;overflow: hidden;`
+        const url = this.userInfo.avatarUrl || this.userInfo.avatar || this.defaultAvatar
+        return `background-image:url('${url}');width:110rpx;height:110rpx;background-size:cover;background-position:center;`
       }
     },
-    // 子组件创建时立即加载用户信息（子组件不触发 onShow）
     created() {
-      console.log(LOG_TAG, '组件 created，立即加载用户信息')
-      this.loadUserInfo()
+      this.refresh()
+      uni.$on('forum-post-published', this.handlePostPublished)
+      uni.$on('forum-post-deleted', this.handlePostDeleted)
     },
-    // 组件挂载后再刷一次（应对 created 时 storage 还未写好的边界情况）
-    mounted() {
-      console.log(LOG_TAG, '组件 mounted，再次确认用户信息')
-      this.$nextTick(() => this.loadUserInfo())
+    beforeDestroy() {
+      uni.$off('forum-post-published', this.handlePostPublished)
+      uni.$off('forum-post-deleted', this.handlePostDeleted)
     },
     methods: {
-      // 父组件切换到我的tab时主动调用刷新
-      refresh() {
-        this.loadUserInfo()
-      },
-      // 加载本地存储的用户信息，并做字段归一化
-      async loadUserInfo() {
+      async refresh() {
         const rawInfo = session.getUser()
-        this.isLoggedIn = !!session.getAccessToken()
-        // 字段归一化：保留原模板字段，同时适配新的用户会话结构
-        const normalized = Object.assign({}, rawInfo)
-        if (!normalized.nickname) normalized.nickname = normalized.displayName || normalized.username
-        if (!normalized.uid) normalized.uid = normalized.userId || normalized.id
-        this.userInfo = normalized
-        console.log(LOG_TAG, '加载用户信息, isLoggedIn:', this.isLoggedIn, 'userInfo:', this.userInfo)
-        if (!this.isLoggedIn) return
+        this.isLoggedIn = session.isAccessTokenUsable()
+        this.userInfo = rawInfo || {}
+        if (!this.isLoggedIn) {
+          this.summary = { postCount: 0, receivedLikeCount: 0, commentCount: 0 }
+          return
+        }
         try {
-          const currentUser = await user.getCurrentUser({ custom: { silent: true, authRedirect: false } })
-          session.saveUser(currentUser)
-          this.userInfo = Object.assign({}, currentUser, {
-            nickname: currentUser.displayName || currentUser.nickname || currentUser.username,
-            uid: currentUser.userId
-          })
+          const results = await Promise.all([
+            user.getCurrentUser({ custom: { silent: true, authRedirect: false } }),
+            user.getCommunitySummary({ custom: { silent: true, authRedirect: false } })
+          ])
+          this.userInfo = results[0] || this.userInfo
+          this.summary = Object.assign({}, this.summary, results[1] || {})
+          session.saveUser(this.userInfo)
         } catch (error) {
-          console.warn(LOG_TAG, '刷新用户信息失败，继续使用本地缓存')
+          console.warn('[PageE] 用户资料或统计刷新失败，继续使用本地数据')
         }
       },
-
-      // 点击用户信息区域：未登录跳登录页，已登录刷新用户信息
+      handlePostPublished() {
+        this.refresh()
+      },
+      handlePostDeleted() {
+        this.refresh()
+      },
       handleUserClick() {
-        if (this.isLoggedIn) {
-          console.log(LOG_TAG, '已登录，可扩展为编辑资料页')
-          // 预留：跳转编辑资料页
-        } else {
-          console.log(LOG_TAG, '未登录，跳转登录页')
-          uni.navigateTo({ url: '/pages/login/login' })
+        if (this.isLoggedIn) this.openProfileEditor()
+        else this.goLogin()
+      },
+      openProfileEditor() {
+        if (!this.isLoggedIn) {
+          this.goLogin()
+          return
+        }
+        this.profileForm = {
+          displayName: this.userInfo.displayName || this.userInfo.nickname || '',
+          bio: this.userInfo.bio || '',
+          avatarUrl: this.userInfo.avatarUrl || this.defaultAvatar
+        }
+        this.showProfileEditor = true
+      },
+      async changeAvatar() {
+        if (this.avatarUploading) return
+        try {
+          const chooseResult = await new Promise((resolve, reject) => {
+            uni.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'], success: resolve, fail: reject })
+          })
+          const filePath = chooseResult.tempFilePaths && chooseResult.tempFilePaths[0]
+          if (!filePath) return
+          this.avatarUploading = true
+          const uploaded = await file.uploadImage(filePath)
+          this.profileForm.avatarUrl = uploaded.url
+        } catch (error) {
+          if (error && error.errMsg && error.errMsg.indexOf('cancel') !== -1) return
+          uni.showToast({ title: '头像上传失败', icon: 'none' })
+        } finally {
+          this.avatarUploading = false
         }
       },
-
-      // 退出登录
+      async saveProfile() {
+        const displayName = (this.profileForm.displayName || '').trim()
+        if (!displayName) {
+          uni.showToast({ title: '昵称不能为空', icon: 'none' })
+          return
+        }
+        if (this.profileSaving) return
+        this.profileSaving = true
+        try {
+          const currentUser = await user.updateProfile({
+            displayName,
+            avatarUrl: this.profileForm.avatarUrl || this.defaultAvatar,
+            bio: (this.profileForm.bio || '').trim()
+          })
+          this.userInfo = currentUser
+          session.saveUser(currentUser)
+          this.showProfileEditor = false
+          uni.showToast({ title: '资料已更新', icon: 'success' })
+        } catch (error) {
+        } finally {
+          this.profileSaving = false
+        }
+      },
+      goLogin() {
+        uni.navigateTo({ url: '/pages/login/login' })
+      },
+      goPublish() {
+        if (!this.isLoggedIn) {
+          uni.showToast({ title: '请先登录', icon: 'none' })
+          setTimeout(this.goLogin, 600)
+          return
+        }
+        uni.navigateTo({ url: '/pages/post/publish' })
+      },
+      goMyPosts() {
+        if (!this.isLoggedIn) {
+          this.goLogin()
+          return
+        }
+        uni.navigateTo({ url: '/pages/mine/posts' })
+      },
+      openService(key) {
+        if (key === 'posts') {
+          this.goMyPosts()
+        } else if (key === 'sign') {
+          uni.navigateTo({ url: '/pages/sign/sign' })
+        } else if (key === 'ranking') {
+          this.$emit('open-discover', 1)
+        } else if (key === 'activity') {
+          this.$emit('open-discover', 2)
+        }
+      },
       handleLogout() {
         uni.showModal({
           title: '提示',
           content: '确定要退出登录吗？',
-          success: async (res) => {
-            if (res.confirm) {
-              console.log(LOG_TAG, '用户确认退出登录')
-              try {
-                await user.logout()
-              } catch (error) {
-                console.warn(LOG_TAG, '服务端退出失败，仍清理本地会话')
-              }
-              session.clearAuthSession()
-              this.isLoggedIn = false
-              this.userInfo = {}
-              uni.showToast({ title: '已退出登录', icon: 'success' })
-              console.log(LOG_TAG, '已清除本地 token 和 userInfo')
-            }
+          success: async (result) => {
+            if (!result.confirm) return
+            try { await user.logout() } catch (error) {}
+            session.clearAuthSession()
+            this.isLoggedIn = false
+            this.userInfo = {}
+            this.summary = { postCount: 0, receivedLikeCount: 0, commentCount: 0 }
+            uni.showToast({ title: '已退出登录', icon: 'success' })
           }
         })
       },
-
-      // 跳转发布帖子页
-      goPublish() {
-        if (!this.isLoggedIn) {
-          uni.showToast({ title: '请先登录', icon: 'none' })
-          setTimeout(() => {
-            uni.navigateTo({ url: '/pages/login/login' })
-          }, 1000)
-          return
-        }
-        console.log(LOG_TAG, '跳转发布帖子页')
-        uni.navigateTo({ url: '/pages/post/publish' })
-      },
-
-      // 跳转
-      tn(e) {
-        uni.navigateTo({
-          url: e,
-        });
-      },
-      
-      // 跳转到图鸟UI
-      navTuniaoUI() {
-        uni.navigateToMiniProgram({
-          appId: 'wxf3d81a452b88ff4b'
-        })
-      },
-      
-      //拨打固定电话
-      callPhoneNumber() {
-        uni.makePhoneCall({
-          phoneNumber: "18219128888",
-        });
-      },
-
-      
-      // 复制id
-      copyWechat() {
-        if (typeof wx !== 'undefined' && wx.vibrateShort) {
-          wx.vibrateShort();
-        }
-        uni.setClipboardData({
-          data: "10262008",
-        })
-      },
-      
-      // 预览作者图片
-      previewQRCodeImage() {
-        wx.previewImage({
-          urls: ['https://resource.tuniaokj.com/images/advertise/qrcode.jpg']
-        })
-      },
-      
-      // 弹出模态框1
-      showModal(event) {
-        this.openModal()
-      },
-      // 打开模态框
-      openModal() {
-        this.show1 = true
-      },
-      
-      // 复制开源地址
       copySource() {
-        if (typeof wx !== 'undefined' && wx.vibrateShort) {
-          wx.vibrateShort();
-        }
-        uni.setClipboardData({
-          data: "https://ext.dcloud.net.cn/publisher?id=356088",
-        })
+        uni.setClipboardData({ data: 'https://github.com/haojiawei2018/community.git' })
       },
+      formatCount(value) {
+        const count = Number(value) || 0
+        if (count >= 10000) return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}万`
+        return String(count)
+      },
+      formatTime(value) {
+        if (!value) return '刚刚'
+        const time = new Date(value).getTime()
+        if (!time) return '刚刚'
+        const diff = Math.max(Date.now() - time, 0)
+        if (diff < 60000) return '刚刚'
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`
+        const date = new Date(time)
+        return `${date.getMonth() + 1}-${date.getDate()}`
+      }
     }
   }
 </script>
 
 <style lang="scss" scoped>
-  .pagesE{
-    max-height: 100vh;
+  .pagesE { min-height: 100vh; }
+  .custom-nav { height: 100%; }
+  .mine-content { z-index: 1; position: relative; }
+  .mine-fixed {
+    position: fixed; background: linear-gradient(90deg, #c9febf, #F6F6F6); top: 0;
+    width: 100%; height: 450rpx; transition: all .25s ease-out; z-index: 0;
   }
-  
-  /* 自定义导航栏内容 start */
-  .custom-nav {
-    height: 100%;
-
-    &__logo {
-      margin: auto 5rpx;
-      font-size: 50rpx;
-      margin-right: 10rpx;
-      margin-left: 30rpx;
-      flex-basis: 5%;
-    }
+  .mine-fixed::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    mask-image: linear-gradient(to bottom, transparent, black); background: #F6F6F6;
   }
-  /* 自定义导航栏内容 end */
-
-  .mine-fixed{
-    position: fixed;
-    // background: linear-gradient(90deg, #d8feda, #F6F6F6);
-    background: linear-gradient(90deg, #c9febf, #F6F6F6);
-    top: 0;
-    width: 100%;
-    height: 450rpx;
-    transition: all 0.25s ease-out;
-    z-index: 0;
-  }
-  .mine-fixed:before{
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    z-index: 0;
-    mask-image: linear-gradient(to bottom, transparent, black);
-    background: linear-gradient(90deg, #F6F6F6, #F6F6F6);	
-
-  }
-
-  /* 用户头像 start */
-  .logo-image {
-    width: 110rpx;
-    height: 110rpx;
-    position: relative;
-    overflow: hidden;
-    border-radius: 50%;
-  }
-
+  .logo-image { width: 110rpx; height: 110rpx; position: relative; overflow: hidden; border-radius: 50%; }
   .logo-pic {
-    background-size: cover;
-    background-repeat: no-repeat;
-    // background-attachment:fixed;
-    background-position: top;
-    border: 8rpx solid rgba(255,255,255,0.6);
-    box-shadow: 0rpx 0rpx 50rpx 0rpx rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    overflow: hidden;
-    // background-color: #FFFFFF;
+    border: 8rpx solid rgba(255,255,255,.6); box-shadow: 0 0 50rpx rgba(0,0,0,.1);
+    border-radius: 50%; overflow: hidden; flex-shrink: 0;
   }
-
-  /* 图标容器1 start */
-  .icon1 {
-    &__item {
-      // width: 30%;
-      background-color: #FFFFFF;
-      border-radius: 10rpx;
-      padding: 30rpx;
-      margin: 20rpx 10rpx;
-      transform: scale(1);
-      transition: transform 0.3s linear;
-      transform-origin: center center;
-  
-      &--icon {
-        width: 50rpx;
-        height: 50rpx;
-        font-size: 40rpx;
-        border-radius: 50%;
-        position: relative;
-        z-index: 1;
-  
-        &::after {
-          content: " ";
-          position: absolute;
-          z-index: -1;
-          width: 100%;
-          height: 100%;
-          left: 0;
-          bottom: 0;
-          border-radius: inherit;
-          opacity: 1;
-          transform: scale(1, 1);
-          background-size: 100% 100%;
-          // background-image: url(https://resource.tuniaokj.com/images/cool_bg_image/icon_bg.png);
-        }
-      }
-    }
+  .profile-subtitle { max-width: 430rpx; }
+  .setting-icon { font-size: 50rpx; opacity: .5; padding: 16rpx; }
+  .quick-actions { padding: 30rpx 60rpx 10rpx; }
+  .quick-icon {
+    width: 58rpx; height: 58rpx; font-size: 42rpx; border-radius: 50%; margin-bottom: 10rpx;
+    background: #000; color: #FFF; position: relative;
   }
-  
-  /* 图标容器1 end */
-  
-  .icon12 {
-    &__item {
-      width: 30%;
-      background-color: #FFFFFF;
-      padding: 30rpx;
-      margin: 20rpx 10rpx;
-      transform: scale(1);
-      transition: transform 0.3s linear;
-      transform-origin: center center;
-      
-      &--icon {
-        width: 80rpx;
-        height: 80rpx;
-        font-size: 50rpx;
-        // margin-bottom: 18rpx;
-        position: relative;
-        z-index: 1;
-        
-        &::after {
-          content: " ";
-          position: absolute;
-          z-index: -1;
-          width: 100%;
-          height: 100%;
-          left: 0;
-          bottom: 0;
-          border-radius: inherit;
-          opacity: 1;
-          transform: scale(1, 1);
-          background-size: 100% 100%;
-          // background-image: url(https://resource.tuniaokj.com/images/cool_bg_image/icon_bg6.png);
-        }
-      }
-    }
+  .common-card { background: #FFF; border-radius: 18rpx; margin: 20rpx 30rpx; }
+  .service-card { margin: 20rpx 30rpx; padding: 26rpx 18rpx 20rpx; border-radius: 18rpx; background: #FFF; }
+  .service-header { padding: 0 12rpx 20rpx; }
+  .service-grid { width: 100%; }
+  .service-item { width: 25%; padding: 18rpx 4rpx 20rpx; box-sizing: border-box; text-align: center; }
+  .service-icon {
+    width: 82rpx; height: 82rpx; margin: 0 auto; border-radius: 18rpx; color: #FFF;
+    font-size: 45rpx; line-height: 82rpx; box-shadow: 10rpx 10rpx 0 rgba(0,0,0,.06);
   }
-  
-  /* 图标容器13 start */
-  .icon13 {
-    &__item {
-      width: 30%;
-      background-color: #FFFFFF;
-      border-radius: 10rpx;
-      padding: 30rpx;
-      margin: 20rpx 10rpx;
-      transform: scale(1);
-      transition: transform 0.3s linear;
-      transform-origin: center center;
-  
-      &--icon {
-        width: 15rpx;
-        height: 15rpx;
-        font-size: 50rpx;
-        border-radius: 50%;
-        margin-bottom: 28rpx;
-        position: relative;
-        z-index: 1;
-        
-        &::after {
-          content: " ";
-          position: absolute;
-          z-index: -1;
-          width: 100%;
-          height: 100%;
-          left: 0;
-          bottom: 0;
-          border-radius: inherit;
-          opacity: 1;
-          transform: scale(1, 1);
-          background-size: 100% 100%;
-            
-        }
-      }
-    }
+  .service-icon--pink { background: linear-gradient(145deg, #FFB5C7, #ED5A86); }
+  .service-icon--purple { background: linear-gradient(145deg, #C6C0FF, #7A6EF2); }
+  .service-icon--blue { background: linear-gradient(145deg, #9FC1FF, #668FEF); }
+  .service-icon--orange { background: linear-gradient(145deg, #FFD19B, #F2A04B); }
+  .service-name { padding-top: 18rpx; color: #444; font-size: 25rpx; white-space: nowrap; }
+  .logout-text { color: #111111; }
+  .opensource-signature {
+    padding: 22rpx 30rpx 8rpx;
+    color: #B8B8B8;
+    font-size: 22rpx;
+    letter-spacing: 2rpx;
+    text-align: center;
   }
-  
-  /* 底部安全边距 start*/
+  .icon1__item--icon { width: 50rpx; height: 50rpx; font-size: 40rpx; border-radius: 50%; position: relative; z-index: 1; }
+  .profile-modal { padding: 12rpx 4rpx; }
+  .profile-avatar-editor { width: 150rpx; margin: 28rpx auto 0; padding-bottom: 10rpx; text-align: center; }
+  .profile-avatar-image { width: 112rpx; height: 112rpx; border-radius: 50%; border: 6rpx solid #F2F2F2; }
+  .profile-avatar-tip { height: 34rpx; color: #777; font-size: 22rpx; line-height: 34rpx; white-space: nowrap; }
+  .form-label { margin: 22rpx 0 12rpx; color: #555; font-size: 25rpx; line-height: 36rpx; }
+  .form-input, .form-textarea { width: 100%; box-sizing: border-box; background: #F5F5F5; border-radius: 14rpx; padding: 22rpx; font-size: 28rpx; }
+  .form-input { height: 76rpx; line-height: 36rpx; }
+  .form-textarea { height: 180rpx; }
+  .modal-button { flex: 1; margin: 0 8rpx; padding: 22rpx; border-radius: 100rpx; text-align: center; }
+  .modal-button--light { background: #F1F1F1; color: #555; }
+  .modal-button--dark { background: #111; color: #FFF; }
   .tn-tabbar-height {
-  	min-height: 120rpx;
-  	height: calc(140rpx + env(safe-area-inset-bottom) / 2);
+    min-height: 120rpx;
+    height: calc(140rpx + env(safe-area-inset-bottom) / 2);
     height: calc(140rpx + constant(safe-area-inset-bottom));
   }
-  
 </style>

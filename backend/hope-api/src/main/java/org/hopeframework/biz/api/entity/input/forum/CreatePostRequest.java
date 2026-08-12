@@ -2,6 +2,9 @@ package org.hopeframework.biz.api.entity.input.forum;
 
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 public class CreatePostRequest {
     private Long circleId;
@@ -10,4 +13,5 @@ public class CreatePostRequest {
     private String content;
     private String visibility;
     private Boolean saveAsDraft;
+    private List<String> images = new ArrayList<>();
 }

@@ -14,17 +14,27 @@ import org.hopeframework.biz.api.entity.output.forum.CircleResponse;
 import org.hopeframework.biz.api.entity.output.forum.CommentResponse;
 import org.hopeframework.biz.api.entity.output.forum.LikeResponse;
 import org.hopeframework.biz.api.entity.output.forum.PostResponse;
+import org.hopeframework.biz.api.entity.output.forum.TopicResponse;
+import org.hopeframework.biz.api.entity.output.user.UserCommunitySummaryResponse;
+import org.hopeframework.biz.api.entity.output.user.MemberProfileResponse;
 import org.hopeframework.biz.api.mapper.forum.ForumCircleMapper;
 import org.hopeframework.biz.api.mapper.forum.ForumCommentMapper;
 import org.hopeframework.biz.api.mapper.forum.ForumPostMapper;
+import org.hopeframework.biz.api.mapper.forum.ForumPostMediaMapper;
 import org.hopeframework.biz.api.mapper.forum.ForumReactionMapper;
+import org.hopeframework.biz.api.mapper.forum.ForumTopicMapper;
+import org.hopeframework.biz.api.mapper.forum.UserFollowMapper;
 import org.hopeframework.biz.api.mapper.user.TenantMemberMapper;
 import org.hopeframework.biz.api.model.forum.ForumCircle;
 import org.hopeframework.biz.api.model.forum.ForumComment;
 import org.hopeframework.biz.api.model.forum.ForumPost;
+import org.hopeframework.biz.api.model.forum.ForumPostMedia;
 import org.hopeframework.biz.api.model.forum.ForumReaction;
+import org.hopeframework.biz.api.model.forum.ForumTopic;
+import org.hopeframework.biz.api.model.forum.UserFollow;
 import org.hopeframework.biz.api.model.user.TenantMember;
 import org.hopeframework.biz.api.service.forum.IForumService;
+import org.hopeframework.biz.api.service.notification.INotificationService;
 import org.hopeframework.core.exception.HopeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,6 +44,8 @@ import org.springframework.util.StringUtils;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Collections;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,20 +53,32 @@ public class ForumServiceImpl implements IForumService {
 
     private final ForumCircleMapper circleMapper;
     private final ForumPostMapper postMapper;
+    private final ForumPostMediaMapper postMediaMapper;
+    private final ForumTopicMapper topicMapper;
+    private final UserFollowMapper followMapper;
     private final ForumCommentMapper commentMapper;
     private final ForumReactionMapper reactionMapper;
     private final TenantMemberMapper memberMapper;
+    private final INotificationService notificationService;
 
     public ForumServiceImpl(ForumCircleMapper circleMapper,
                             ForumPostMapper postMapper,
+                            ForumPostMediaMapper postMediaMapper,
+                            ForumTopicMapper topicMapper,
+                            UserFollowMapper followMapper,
                             ForumCommentMapper commentMapper,
                             ForumReactionMapper reactionMapper,
-                            TenantMemberMapper memberMapper) {
+                            TenantMemberMapper memberMapper,
+                            INotificationService notificationService) {
         this.circleMapper = circleMapper;
         this.postMapper = postMapper;
+        this.postMediaMapper = postMediaMapper;
+        this.topicMapper = topicMapper;
+        this.followMapper = followMapper;
         this.commentMapper = commentMapper;
         this.reactionMapper = reactionMapper;
         this.memberMapper = memberMapper;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -82,14 +106,71 @@ public class ForumServiceImpl implements IForumService {
                 .eq(query.getCircleId() != null, ForumPost::getCircleId, query.getCircleId())
                 .and(StringUtils.hasText(query.getKeyword()), value -> value
                         .like(ForumPost::getTitle, query.getKeyword().trim())
-                        .or().like(ForumPost::getContent, query.getKeyword().trim()))
-                .orderByDesc(ForumPost::getIsTop)
-                .orderByDesc(ForumPost::getPublishedAt)
+                        .or().like(ForumPost::getContent, query.getKeyword().trim()));
+        AuthPrincipal feedPrincipal = AuthContext.current();
+        if (feedPrincipal != null) {
+            wrapper.notInSql(ForumPost::getAuthorMemberId,
+                    "SELECT blocked_member_id FROM user_block WHERE tenant_id = " + TenantContext.requireTenantId()
+                            + " AND member_id = " + feedPrincipal.getMemberId());
+        }
+        if (Boolean.TRUE.equals(query.getFollowing())) {
+            AuthPrincipal principal = AuthContext.current();
+            if (principal == null) {
+                throw new HopeException(HttpStatus.UNAUTHORIZED.value(), "登录后才能查看关注动态");
+            }
+            List<Long> followedIds = followMapper.selectList(new LambdaQueryWrapper<UserFollow>()
+                            .eq(UserFollow::getFollowerMemberId, principal.getMemberId()))
+                    .stream().map(UserFollow::getFollowedMemberId).collect(Collectors.toList());
+            if (followedIds.isEmpty()) {
+                return new PageResult<>(Collections.emptyList(), 0L, pageSize, page);
+            }
+            wrapper.in(ForumPost::getAuthorMemberId, followedIds);
+        }
+        wrapper.orderByDesc(ForumPost::getIsTop);
+        String sort = normalizeOrDefault(query.getSort(), "RECOMMENDED");
+        if ("RECOMMENDED".equals(sort)) {
+            wrapper.orderByDesc(ForumPost::getIsFeatured)
+                    .orderByDesc(ForumPost::getLikeCount)
+                    .orderByDesc(ForumPost::getCommentCount);
+        } else if ("HOT".equals(sort)) {
+            wrapper.orderByDesc(ForumPost::getLikeCount)
+                    .orderByDesc(ForumPost::getCommentCount)
+                    .orderByDesc(ForumPost::getViewCount);
+        }
+        wrapper.orderByDesc(ForumPost::getPublishedAt)
                 .orderByDesc(ForumPost::getId);
         Page<ForumPost> result = postMapper.selectPage(new Page<>(page, pageSize), wrapper);
         List<PostResponse> records = result.getRecords().stream()
                 .map(this::toPostResponse).collect(Collectors.toList());
         return new PageResult<>(records, result.getTotal(), result.getSize(), result.getCurrent());
+    }
+
+    @Override
+    public List<TopicResponse> listTopics() {
+        Date now = new Date();
+        return topicMapper.selectList(new LambdaQueryWrapper<ForumTopic>()
+                        .eq(ForumTopic::getStatus, "ACTIVE")
+                        .and(value -> value.isNull(ForumTopic::getStartAt).or().le(ForumTopic::getStartAt, now))
+                        .and(value -> value.isNull(ForumTopic::getEndAt).or().ge(ForumTopic::getEndAt, now))
+                        .orderByAsc(ForumTopic::getSortOrder)
+                        .orderByDesc(ForumTopic::getId))
+                .stream().map(this::toTopicResponse).collect(Collectors.toList());
+    }
+
+    private TopicResponse toTopicResponse(ForumTopic topic) {
+        TopicResponse response = new TopicResponse();
+        response.setId(topic.getId());
+        response.setCircleId(topic.getCircleId());
+        ForumCircle circle = topic.getCircleId() == null ? null : circleMapper.selectById(topic.getCircleId());
+        response.setCircleName(circle == null ? null : circle.getCircleName());
+        response.setTopicName(topic.getTopicName());
+        response.setDescription(topic.getDescription());
+        response.setCoverUrl(topic.getCoverUrl());
+        response.setStatus(topic.getStatus());
+        response.setStartAt(topic.getStartAt());
+        response.setEndAt(topic.getEndAt());
+        response.setSortOrder(topic.getSortOrder());
+        return response;
     }
 
     @Override
@@ -140,6 +221,7 @@ public class ForumServiceImpl implements IForumService {
         post.setUpdatedAt(now);
         post.setDeleted(0);
         postMapper.insert(post);
+        savePostImages(post.getId(), request.getImages(), now);
         if (!draft) {
             circleMapper.incrementPost(TenantContext.requireTenantId(), circle.getId());
         }
@@ -194,6 +276,7 @@ public class ForumServiceImpl implements IForumService {
         comment.setDeleted(0);
         commentMapper.insert(comment);
         postMapper.incrementComment(TenantContext.requireTenantId(), postId);
+        notificationService.notifyPostAuthor(post, principal.getMemberId(), "COMMENT", content);
         return toCommentResponse(comment);
     }
 
@@ -206,10 +289,10 @@ public class ForumServiceImpl implements IForumService {
         if (existing != null) {
             return new LikeResponse(true, safe(post.getLikeCount()));
         }
-        int inserted = reactionMapper.insertPostLikeIgnore(
-                TenantContext.requireTenantId(), principal.getMemberId(), postId);
+        int inserted = reactionMapper.insertPostLikeIgnore(principal.getMemberId(), postId);
         if (inserted > 0) {
             postMapper.incrementLike(TenantContext.requireTenantId(), postId);
+            notificationService.notifyPostAuthor(post, principal.getMemberId(), "LIKE", post.getTitle());
             return new LikeResponse(true, safe(post.getLikeCount()) + 1L);
         }
         return new LikeResponse(true, currentLikeCount(postId));
@@ -230,6 +313,94 @@ public class ForumServiceImpl implements IForumService {
             return new LikeResponse(false, Math.max(safe(post.getLikeCount()) - 1L, 0L));
         }
         return new LikeResponse(false, safe(post.getLikeCount()));
+    }
+
+    @Override
+    public UserCommunitySummaryResponse currentUserSummary() {
+        Long memberId = AuthContext.require().getMemberId();
+        Integer commentCount = commentMapper.selectCount(new LambdaQueryWrapper<ForumComment>()
+                .eq(ForumComment::getAuthorMemberId, memberId)
+                .eq(ForumComment::getStatus, "PUBLISHED"));
+        UserCommunitySummaryResponse response = new UserCommunitySummaryResponse();
+        response.setPostCount(postMapper.countPublishedByAuthor(memberId));
+        response.setReceivedLikeCount(postMapper.sumReceivedLikesByAuthor(memberId));
+        response.setCommentCount(commentCount == null ? 0L : commentCount.longValue());
+        return response;
+    }
+
+    @Override
+    public PageResult<PostResponse> pageCurrentUserPosts(PostPageRequest request) {
+        AuthPrincipal principal = AuthContext.require();
+        PostPageRequest query = request == null ? new PostPageRequest() : request;
+        int page = query.getPage() == null ? 1 : Math.max(query.getPage(), 1);
+        int pageSize = query.getPageSize() == null ? 10 : Math.min(Math.max(query.getPageSize(), 1), 50);
+        Page<ForumPost> result = postMapper.selectPage(new Page<>(page, pageSize),
+                new LambdaQueryWrapper<ForumPost>()
+                        .eq(ForumPost::getAuthorMemberId, principal.getMemberId())
+                        .eq(ForumPost::getStatus, "PUBLISHED")
+                        .orderByDesc(ForumPost::getPublishedAt)
+                        .orderByDesc(ForumPost::getId));
+        List<PostResponse> records = result.getRecords().stream()
+                .map(this::toPostResponse).collect(Collectors.toList());
+        return new PageResult<>(records, result.getTotal(), result.getSize(), result.getCurrent());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteCurrentUserPost(Long postId) {
+        if (postId == null) {
+            throw new HopeException(HttpStatus.BAD_REQUEST.value(), "帖子 ID 不能为空");
+        }
+        AuthPrincipal principal = AuthContext.require();
+        ForumPost post = postMapper.selectById(postId);
+        if (post == null) {
+            throw new HopeException(HttpStatus.NOT_FOUND.value(), "帖子不存在或已删除");
+        }
+        if (!Objects.equals(post.getAuthorMemberId(), principal.getMemberId())) {
+            throw new HopeException(HttpStatus.FORBIDDEN.value(), "只能删除自己发布的帖子");
+        }
+        postMapper.deleteById(post.getId());
+        if ("PUBLISHED".equals(post.getStatus())) {
+            circleMapper.decrementPost(TenantContext.requireTenantId(), post.getCircleId());
+        }
+    }
+
+    @Override
+    public MemberProfileResponse getMemberProfile(Long memberId) {
+        if (memberId == null) {
+            throw new HopeException(HttpStatus.BAD_REQUEST.value(), "成员 ID 不能为空");
+        }
+        TenantMember member = memberMapper.selectById(memberId);
+        if (member == null || !"ACTIVE".equals(member.getStatus())) {
+            throw new HopeException(HttpStatus.NOT_FOUND.value(), "社区成员不存在或不可访问");
+        }
+        MemberProfileResponse response = new MemberProfileResponse();
+        response.setMemberId(member.getId());
+        response.setDisplayName(member.getDisplayName());
+        response.setAvatarUrl(member.getAvatarUrl());
+        response.setBio(member.getBio());
+        response.setJoinedAt(member.getJoinedAt());
+        response.setPostCount(postMapper.countPublishedByAuthor(member.getId()));
+        response.setReceivedLikeCount(postMapper.sumReceivedLikesByAuthor(member.getId()));
+        return response;
+    }
+
+    @Override
+    public PageResult<PostResponse> pageMemberPosts(Long memberId, PostPageRequest request) {
+        getMemberProfile(memberId);
+        PostPageRequest query = request == null ? new PostPageRequest() : request;
+        int page = query.getPage() == null ? 1 : Math.max(query.getPage(), 1);
+        int pageSize = query.getPageSize() == null ? 10 : Math.min(Math.max(query.getPageSize(), 1), 50);
+        Page<ForumPost> result = postMapper.selectPage(new Page<>(page, pageSize),
+                new LambdaQueryWrapper<ForumPost>()
+                        .eq(ForumPost::getAuthorMemberId, memberId)
+                        .eq(ForumPost::getStatus, "PUBLISHED")
+                        .eq(ForumPost::getVisibility, "PUBLIC")
+                        .orderByDesc(ForumPost::getPublishedAt)
+                        .orderByDesc(ForumPost::getId));
+        List<PostResponse> records = result.getRecords().stream()
+                .map(this::toPostResponse).collect(Collectors.toList());
+        return new PageResult<>(records, result.getTotal(), result.getSize(), result.getCurrent());
     }
 
     private ForumCircle firstActiveCircle() {
@@ -285,6 +456,8 @@ public class ForumServiceImpl implements IForumService {
         response.setCoverUrl(circle.getCoverUrl());
         response.setDescription(circle.getDescription());
         response.setJoinMode(circle.getJoinMode());
+        response.setStatus(circle.getStatus());
+        response.setSortOrder(circle.getSortOrder());
         response.setMemberCount(safe(circle.getMemberCount()));
         response.setPostCount(safe(circle.getPostCount()));
         return response;
@@ -315,7 +488,34 @@ public class ForumServiceImpl implements IForumService {
         AuthPrincipal principal = AuthContext.current();
         response.setIsLiked(principal != null && findPostLike(principal.getMemberId(), post.getId()) != null);
         response.setCreateTime(post.getPublishedAt() == null ? post.getCreatedAt() : post.getPublishedAt());
+        response.setImages(postMediaMapper.selectList(new LambdaQueryWrapper<ForumPostMedia>()
+                        .eq(ForumPostMedia::getPostId, post.getId())
+                        .eq(ForumPostMedia::getMediaType, "IMAGE")
+                        .orderByAsc(ForumPostMedia::getSortOrder)
+                        .orderByAsc(ForumPostMedia::getId))
+                .stream().map(ForumPostMedia::getMediaUrl).collect(Collectors.toList()));
         return response;
+    }
+
+    private void savePostImages(Long postId, List<String> images, Date now) {
+        if (images == null || images.isEmpty()) return;
+        if (images.size() > 9) {
+            throw new HopeException(HttpStatus.BAD_REQUEST.value(), "帖子图片不能超过 9 张");
+        }
+        int sort = 0;
+        for (String image : images) {
+            if (!StringUtils.hasText(image) || image.trim().length() > 1024) {
+                throw new HopeException(HttpStatus.BAD_REQUEST.value(), "帖子图片地址不合法");
+            }
+            ForumPostMedia media = new ForumPostMedia();
+            media.setTenantId(TenantContext.requireTenantId());
+            media.setPostId(postId);
+            media.setMediaType("IMAGE");
+            media.setMediaUrl(image.trim());
+            media.setSortOrder(sort++);
+            media.setCreatedAt(now);
+            postMediaMapper.insert(media);
+        }
     }
 
     private CommentResponse toCommentResponse(ForumComment comment) {

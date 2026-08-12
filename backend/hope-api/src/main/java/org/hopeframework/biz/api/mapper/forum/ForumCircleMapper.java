@@ -10,4 +10,7 @@ import org.hopeframework.biz.api.model.forum.ForumCircle;
 public interface ForumCircleMapper extends BaseMapper<ForumCircle> {
     @Update("UPDATE forum_circle SET post_count = post_count + 1 WHERE tenant_id = #{tenantId} AND id = #{circleId} AND deleted = 0")
     int incrementPost(@Param("tenantId") Long tenantId, @Param("circleId") Long circleId);
+
+    @Update("UPDATE forum_circle SET post_count = GREATEST(post_count - 1, 0) WHERE tenant_id = #{tenantId} AND id = #{circleId} AND deleted = 0")
+    int decrementPost(@Param("tenantId") Long tenantId, @Param("circleId") Long circleId);
 }

@@ -16,44 +16,41 @@
         <text class="tn-icon-close"></text>
       </view> -->
       
-      <view class="tn-flex tn-flex-col-top" :style="{paddingTop: vuex_custom_bar_height - 40 +'px'}">
-            
-        <view class="tn-padding-bottom">
-          <view class="logo-pic">
-            <view class="logo-image" style="background-image:url('https://resource.tuniaokj.com/images/flower/guye1.jpg');width: 90rpx;height: 90rpx;background-size: cover;overflow: hidden;">
-            </view>
-          </view>
-          <!-- <view class="tn-icon-fire tn-color-red" style="position: absolute;margin: -105rpx 0 0 72rpx;border-radius: 100rpx;padding: 5rpx;"></view> -->
+      <view class="community-head tn-flex tn-flex-col-center" :style="{ paddingTop: vuex_custom_bar_height - 40 + 'px' }">
+        <view class="community-logo">
+          <image v-if="community.logoUrl" class="community-logo__image" :src="community.logoUrl" mode="aspectFill"></image>
+          <image v-else class="community-logo__image" src="/static/images/default-avatar.png" mode="aspectFill"></image>
         </view>
-        <view class="tn-padding-left-sm" style="width: 100%;">
-          <view class="tn-padding-top-xs">
-            <text class="tn-text-bold tn-text-lg">抓住那只猪</text>
-          </view>
-          <view class="tn-flex tn-flex-row-between tn-flex-col-between tn-padding-top-xs">
-            <view class="justify-content-item">
-              <text class="tn-text-sm">眼里有光，世界将为你亮起！</text>
-            </view>
-            <view class="justify-content-item tn-round tn-text-xs tn-color-gray--light">
-              <!-- <text class="tn-padding-right-xs"></text> 预留 -->
-            </view>
-          </view>
+        <view class="tn-padding-left-sm community-head__content">
+          <view class="tn-text-bold tn-text-lg clamp-text-1">{{ communityName }}</view>
+          <view class="tn-padding-top-xs tn-text-sm tn-color-gray">选择圈子查看对应内容</view>
         </view>
       </view>
       
       <scroll-view scroll-y="true" style="max-height: 70vh;margin: 20rpx 0;">
-        <view class="tn-margin-top-sm" style="border-radius: 24rpx;color: #1D1F24;">
-          <view class="tn-flex tn-flex-row-between tn-flex-col-center" v-for="(item,index) in app" :key="index" @click="tn('')" style="padding: 30rpx 10rpx;">
+        <view class="circle-list tn-margin-top-sm">
+          <view class="circle-item tn-flex tn-flex-row-between tn-flex-col-center"
+            :class="{ 'circle-item--active': !activeCircleId }" @tap.stop="selectCircle('')">
             <view class="justify-content-item tn-flex tn-flex-col-center">
-              <view class="app-pic">
-                <view class="app-image" :style="'background-image:url(' + item.mainImage + ');background-size: cover;'">
-                </view>
-              </view>
-              <view class="tn-padding-left-xs clamp-text-1">{{ item.title }}</view>
+              <view class="circle-item__icon tn-icon-home-fill"></view>
+              <view class="tn-padding-left-xs clamp-text-1">全部内容</view>
             </view>
-            <view class="justify-content-item">
-              <text class="tn-icon-right"></text>
-            </view>
+            <view v-if="!activeCircleId" class="circle-item__selected tn-icon-success"></view>
           </view>
+
+          <view class="circle-item tn-flex tn-flex-row-between tn-flex-col-center"
+            v-for="circle in circles" :key="circle.id"
+            :class="{ 'circle-item--active': String(activeCircleId) === String(circle.id) }"
+            @tap.stop="selectCircle(circle.id)">
+            <view class="justify-content-item tn-flex tn-flex-col-center circle-item__main">
+              <image v-if="circle.iconUrl" class="circle-item__image" :src="circle.iconUrl" mode="aspectFill"></image>
+              <view v-else class="circle-item__icon tn-icon-topics-fill"></view>
+              <view class="tn-padding-left-xs clamp-text-1">{{ circle.circleName }}</view>
+            </view>
+            <view v-if="String(activeCircleId) === String(circle.id)" class="circle-item__selected tn-icon-success"></view>
+          </view>
+
+          <view v-if="!circles.length" class="circle-empty tn-color-gray tn-text-center">当前社区暂无圈子</view>
         </view>
         
         <view class="tn-padding-bottom">
@@ -87,71 +84,28 @@
       value: {
         type: Boolean,
         default: false
+      },
+      community: {
+        type: Object,
+        default: () => ({ communityName: '开源社区' })
+      },
+      circles: {
+        type: Array,
+        default: () => []
+      },
+      activeCircleId: {
+        type: [String, Number],
+        default: ''
       }
     },
     data() {
       return {
-        openModal: false,
-        
-        app: [
-          {
-            title: '蛋仔派对',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716013944651-assets/web-upload/32eafb0d-1e25-452b-9ad9-d14c18ec90f6.jpeg',
-          },
-          {
-            title: '保卫萝卜',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/png/280373/1715960090731-assets/web-upload/156084cd-aa5a-41dc-98ca-eb681d4afcc5.png',
-          },
-          {
-            title: '旅行青蛙',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716014232876-assets/web-upload/5e1d7c68-048e-4b54-afda-68164a5bebd0.jpeg',
-          },
-          {
-            title: '辐射避难所',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716025506668-assets/web-upload/b6d123a2-4f1d-46c9-9474-f62a87d05a74.jpeg',
-          },
-          {
-            title: '王国保卫战',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716025891640-assets/web-upload/8b4440ce-710b-4d3c-afff-5d49e6c7a16a.jpeg',
-          },
-          {
-            title: '崩坏 · 星穹铁道',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716040399286-assets/web-upload/7a715327-f597-4a8e-ac3c-2ba7ab45b6b9.jpeg',
-          },
-          {
-            title: '纪念碑谷',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716014593433-assets/web-upload/6e1ba4f3-4757-4693-b827-b8803072c5c9.jpeg',
-          },
-          {
-            title: '蛋仔派对',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716013944651-assets/web-upload/32eafb0d-1e25-452b-9ad9-d14c18ec90f6.jpeg',
-          },
-          {
-            title: '保卫萝卜',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/png/280373/1715960090731-assets/web-upload/156084cd-aa5a-41dc-98ca-eb681d4afcc5.png',
-          },
-          {
-            title: '旅行青蛙',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716014232876-assets/web-upload/5e1d7c68-048e-4b54-afda-68164a5bebd0.jpeg',
-          },
-          {
-            title: '辐射避难所',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716025506668-assets/web-upload/b6d123a2-4f1d-46c9-9474-f62a87d05a74.jpeg',
-          },
-          {
-            title: '王国保卫战',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716025891640-assets/web-upload/8b4440ce-710b-4d3c-afff-5d49e6c7a16a.jpeg',
-          },
-          {
-            title: '崩坏 · 星穹铁道',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716040399286-assets/web-upload/7a715327-f597-4a8e-ac3c-2ba7ab45b6b9.jpeg',
-          },
-          {
-            title: '纪念碑谷',
-            mainImage: 'https://cdn.nlark.com/yuque/0/2024/jpeg/280373/1716014593433-assets/web-upload/6e1ba4f3-4757-4693-b827-b8803072c5c9.jpeg',
-          },
-        ],
-        
+        openModal: false
+      }
+    },
+    computed: {
+      communityName() {
+        return this.community.communityName || '开源社区'
       }
     },
     watch: {
@@ -163,12 +117,12 @@
       }
     },
     methods: {
-      // 跳转
-      tn(e) {
-        wx.vibrateShort();
-        uni.navigateTo({
-          url: e,
-        });
+      selectCircle(circleId) {
+        // #ifdef MP-WEIXIN
+        wx.vibrateShort()
+        // #endif
+        this.$emit('select-circle', circleId)
+        this.closeModal()
       },
       
       // 关闭弹框
@@ -182,6 +136,89 @@
 </script>
 
 <style lang="scss" scoped>
+  .community-head {
+    padding-bottom: 28rpx;
+
+    &__content {
+      min-width: 0;
+      flex: 1;
+    }
+  }
+
+  .community-logo {
+    width: 90rpx;
+    height: 90rpx;
+    overflow: hidden;
+    border: 6rpx solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    background-color: #F0F8EC;
+    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.12);
+
+    &__image {
+      width: 100%;
+      height: 100%;
+    }
+
+    &__fallback {
+      display: block;
+      color: #FFFFFF;
+      font-size: 38rpx;
+      font-weight: 700;
+      line-height: 90rpx;
+      text-align: center;
+    }
+  }
+
+  .circle-list {
+    overflow: hidden;
+    border-radius: 24rpx;
+    background-color: rgba(255, 255, 255, 0.55);
+  }
+
+  .circle-item {
+    min-height: 96rpx;
+    padding: 20rpx;
+    color: #1D1F24;
+    border-bottom: 1rpx solid rgba(0, 0, 0, 0.05);
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.9);
+      font-weight: 700;
+    }
+
+    &__main {
+      min-width: 0;
+    }
+
+    &__icon,
+    &__image {
+      width: 52rpx;
+      height: 52rpx;
+      flex-shrink: 0;
+      border-radius: 50%;
+    }
+
+    &__icon {
+      background-color: #0F0F0F;
+      color: #FFFFFF;
+      font-size: 28rpx;
+      line-height: 52rpx;
+      text-align: center;
+    }
+
+    &__selected {
+      color: #0F0F0F;
+      font-size: 30rpx;
+    }
+  }
+
+  .circle-empty {
+    padding: 50rpx 20rpx;
+  }
   
   /* 用户头像 start */
   .logo-image {

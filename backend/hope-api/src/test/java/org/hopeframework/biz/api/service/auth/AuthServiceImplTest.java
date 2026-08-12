@@ -2,6 +2,7 @@ package org.hopeframework.biz.api.service.auth;
 
 import org.hopeframework.biz.api.common.security.AccessTokenService;
 import org.hopeframework.biz.api.common.tenant.TenantContext;
+import org.hopeframework.biz.api.common.tenant.SingleCommunityProperties;
 import org.hopeframework.biz.api.entity.input.auth.RegisterRequest;
 import org.hopeframework.biz.api.entity.output.auth.TokenResponse;
 import org.hopeframework.biz.api.mapper.auth.IamRefreshTokenMapper;
@@ -52,8 +53,9 @@ public class AuthServiceImplTest {
         TenantMemberRoleMapper memberRoleMapper = mock(TenantMemberRoleMapper.class);
         MemberAuthorityMapper authorityMapper = mock(MemberAuthorityMapper.class);
         AccessTokenService tokenService = new AccessTokenService("test-access-token-secret-at-least-32-bytes", 3600);
+        SingleCommunityProperties communityProperties = new SingleCommunityProperties();
         service = new AuthServiceImpl(userMapper, identityMapper, refreshTokenMapper, memberMapper,
-                roleMapper, memberRoleMapper, authorityMapper, tokenService);
+                roleMapper, memberRoleMapper, authorityMapper, tokenService, communityProperties);
         TenantContext.set(10L, "official");
         when(identityMapper.selectOne(any())).thenReturn(null);
         doAnswer(invocation -> { ((IamUser) invocation.getArgument(0)).setId(1L); return 1; })

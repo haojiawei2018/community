@@ -9,9 +9,8 @@ import org.hopeframework.biz.api.model.forum.ForumReaction;
 @Mapper
 public interface ForumReactionMapper extends BaseMapper<ForumReaction> {
     @Insert("INSERT IGNORE INTO forum_reaction "
-            + "(tenant_id, member_id, target_type, target_id, reaction_type, created_at) "
-            + "VALUES (#{tenantId}, #{memberId}, 'POST', #{postId}, 'LIKE', NOW())")
-    int insertPostLikeIgnore(@Param("tenantId") Long tenantId,
-                             @Param("memberId") Long memberId,
+            + "(member_id, target_type, target_id, reaction_type, created_at) "
+            + "VALUES (#{memberId}, 'POST', #{postId}, 'LIKE', NOW())")
+    int insertPostLikeIgnore(@Param("memberId") Long memberId,
                              @Param("postId") Long postId);
 }

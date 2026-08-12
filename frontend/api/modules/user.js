@@ -75,6 +75,18 @@ export default {
     return http.put('/api/v1/users/me', data)
   },
 
+  getCommunitySummary(options = {}) {
+    return http.get('/api/v1/users/me/summary', options)
+  },
+
+  getMyPosts(params = {}) {
+    return http.get('/api/v1/users/me/posts', { params })
+  },
+
+  deleteMyPost(postId) {
+    return http.delete(`/api/v1/users/me/posts/${postId}`)
+  },
+
   logout() {
     if (env.useMock) return Promise.resolve()
     return http.post('/api/v1/auth/logout', {

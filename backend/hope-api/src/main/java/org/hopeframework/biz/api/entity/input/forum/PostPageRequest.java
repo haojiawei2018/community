@@ -6,6 +6,8 @@ import lombok.Data;
 public class PostPageRequest {
     private Long circleId;
     private String keyword;
+    private String sort;
+    private Boolean following;
     private Integer page;
     private Integer pageSize;
 }

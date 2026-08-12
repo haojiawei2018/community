@@ -1,126 +1,143 @@
 <template>
-  <view class="template-detail tn-safe-area-inset-bottom">
-    <!-- 顶部自定义导航 -->
-    <tn-nav-bar fixed customBack :bottomShadow="false" backgroundColor="#FFFFFF">
-      <view slot="back" class="tn-custom-nav-bar__back" @click="goBack">
-        <text class="icon tn-icon-left-arrow"></text>
-      </view>
-      <view class="tn-flex tn-flex-col-center tn-flex-row-center">
-        <text class="tn-text-bold tn-text-lg">帖子详情</text>
+  <view class="template-details tn-safe-area-inset-bottom">
+    <!-- 恢复模板原有的返回 / 首页双按钮导航 -->
+    <tn-nav-bar fixed alpha customBack :bottomShadow="false">
+      <view slot="back" class="nav-capsule">
+        <view class="nav-capsule__item" @tap="goBack">
+          <text class="tn-icon-left"></text>
+        </view>
+        <view class="nav-capsule__line"></view>
+        <view class="nav-capsule__item" @tap="goHome">
+          <text class="tn-icon-home-capsule-fill"></text>
+        </view>
       </view>
     </tn-nav-bar>
 
-    <!-- 内容区域 -->
-    <scroll-view scroll-y class="detail-scroll" :style="{paddingTop: vuex_custom_bar_height + 'px'}">
-      <!-- 帖子主体 -->
-      <view class="post-card tn-bg-white" v-if="postDetail">
-        <!-- 作者信息 -->
-        <view class="post-author tn-flex tn-flex-col-center tn-flex-row-between">
-          <view class="tn-flex tn-flex-col-center">
-            <view class="logo-pic">
-              <view class="logo-image" :style="authorAvatarStyle"></view>
+    <scroll-view scroll-y class="detail-scroll" enable-back-to-top>
+      <view class="detail-content" :style="{ paddingTop: vuex_custom_bar_height + 'px' }">
+        <!-- 模板式帖子主体 -->
+        <view v-if="postDetail" class="blogger__item">
+          <view class="blogger__author tn-flex tn-flex-row-between tn-flex-col-center">
+            <view class="tn-flex tn-flex-col-center">
+              <view class="avatar avatar--author" :style="authorAvatarStyle" @tap="openMember(postDetail.authorMemberId)"></view>
+              <view class="author-info">
+                <view class="author-info__name">{{ postDetail.userName || '匿名用户' }}</view>
+                <view class="author-info__meta">{{ postDetail.circleName || '社区玩家' }}</view>
+              </view>
             </view>
-            <view class="tn-padding-left-sm">
-              <view class="tn-text-bold">{{ postDetail.userName || '匿名用户' }}</view>
-              <view class="tn-color-gray tn-text-sm tn-margin-top-xs">{{ formatTime(postDetail.createTime) }}</view>
+            <text class="tn-icon-more-vertical blogger__more"></text>
+          </view>
+
+          <view class="blogger__body">
+            <view v-if="postDetail.tags && postDetail.tags.length" class="post-tags">
+              <view v-for="(tag, idx) in postDetail.tags" :key="idx" class="post-tag">
+                <text class="tn-icon-spiral"></text>
+                <text>{{ tag }}</text>
+              </view>
+            </view>
+
+            <view v-if="postDetail.title" class="post-title">{{ postDetail.title }}</view>
+            <view class="post-content">{{ postDetail.content }}</view>
+
+            <!-- 延续原模板 1/2/4/多图布局 -->
+            <view v-if="postDetail.images && postDetail.images.length" class="post-images">
+              <image
+                v-for="(img, idx) in postDetail.images"
+                :key="idx"
+                :src="img"
+                mode="aspectFill"
+                class="post-image"
+                :class="{
+                  'post-image--one': postDetail.images.length === 1,
+                  'post-image--double': postDetail.images.length === 2 || postDetail.images.length === 4,
+                  'post-image--grid': [1, 2, 4].indexOf(postDetail.images.length) === -1
+                }"
+                @tap="previewImage(idx)"
+              ></image>
+            </view>
+
+            <view class="post-meta tn-flex tn-flex-row-between tn-flex-col-center">
+              <text>{{ formatTime(postDetail.createTime) }}</text>
+              <view class="post-meta__actions">
+                <text class="tn-icon-message"></text>
+                <text>{{ commentTotal }}</text>
+                <view class="like-action" @tap="handleLike">
+                  <text :class="isLiked ? 'tn-icon-like-fill like-action--active' : 'tn-icon-like-lack'"></text>
+                  <text :class="{ 'like-action--active': isLiked }">{{ likeCount }}</text>
+                </view>
+              </view>
             </view>
           </view>
         </view>
 
-        <!-- 标题 -->
-        <view class="post-title tn-margin-top" v-if="postDetail.title">
-          <text class="tn-text-bold tn-text-xl">{{ postDetail.title }}</text>
+        <view v-if="!postDetail && loadingDetail" class="detail-loading">
+          <view class="skeleton skeleton--short"></view>
+          <view class="skeleton"></view>
+          <view class="skeleton"></view>
         </view>
 
-        <!-- 正文 -->
-        <view class="post-content tn-margin-top-sm">
-          <text class="tn-text-lg">{{ postDetail.content }}</text>
-        </view>
+        <view class="section-strip"></view>
 
-        <!-- 图片列表 -->
-        <view class="post-images tn-margin-top" v-if="postDetail.images && postDetail.images.length">
-          <view class="image-item" v-for="(img, idx) in postDetail.images" :key="idx">
-            <image :src="img" mode="widthFix" @click="previewImage(idx)"></image>
+        <!-- 模板式评论区域，数据改为真实接口 -->
+        <view class="comment-section">
+          <view class="comment-header tn-flex tn-flex-row-between tn-flex-col-center">
+            <text class="comment-header__title">全部 {{ commentTotal }} 条评论</text>
+            <text class="comment-header__action" @tap="focusComment">写评论 <text class="tn-icon-edit-write"></text></text>
+          </view>
+
+          <view v-for="(item, index) in commentList" :key="item.id || index" class="comment-item">
+            <view class="tn-flex tn-flex-row-between tn-flex-col-center">
+              <view class="tn-flex tn-flex-col-center">
+                <view class="avatar avatar--comment" :style="commentAvatarStyle(item)" @tap="openMember(item.authorMemberId)"></view>
+                <view class="comment-author">
+                  <view class="comment-author__name">{{ item.userName || '匿名用户' }}</view>
+                  <view class="comment-author__meta">社区玩家</view>
+                </view>
+              </view>
+              <text class="tn-icon-more-vertical comment-more"></text>
+            </view>
+            <view class="comment-body">{{ item.content }}</view>
+            <view class="comment-meta">
+              <text>{{ formatTime(item.createTime) }}</text>
+              <text class="comment-meta__reply">回复</text>
+            </view>
+          </view>
+
+          <view v-if="!commentList.length && !loadingComment" class="comment-empty">
+            暂无评论，快来抢沙发
+          </view>
+          <view v-if="loadingComment" class="comment-loading">评论加载中...</view>
+          <view v-if="commentList.length < commentTotal" class="load-more" @tap="loadMoreComments">
+            点击加载更多
           </view>
         </view>
 
-        <!-- 标签 -->
-        <view class="post-tags tn-margin-top" v-if="postDetail.tags && postDetail.tags.length">
-          <view class="tag-item" v-for="(tag, idx) in postDetail.tags" :key="idx">{{ tag }}</view>
-        </view>
-
-        <!-- 操作栏：点赞 / 评论数 -->
-        <view class="post-actions tn-flex tn-flex-row-between tn-flex-col-center tn-margin-top">
-          <view class="action-item tn-flex tn-flex-col-center" @click="handleLike">
-            <text
-              class="tn-text-lg"
-              :class="isLiked ? 'tn-icon-like-fill tn-color-red' : 'tn-icon-like-lack tn-color-gray'"
-            ></text>
-            <text class="tn-padding-left-xs tn-text-sm" :class="isLiked ? 'tn-color-red' : 'tn-color-gray'">
-              {{ likeCount }}
-            </text>
-          </view>
-          <view class="action-item tn-flex tn-flex-col-center">
-            <text class="tn-icon-comment tn-text-lg tn-color-gray"></text>
-            <text class="tn-padding-left-xs tn-text-sm tn-color-gray">{{ commentTotal }}</text>
-          </view>
-        </view>
+        <view class="bottom-placeholder"></view>
       </view>
-
-      <!-- 骨架屏：加载中 -->
-      <view class="post-card tn-bg-white" v-if="!postDetail && loadingDetail">
-        <view class="tn-skeleton tn-margin-bottom"></view>
-        <view class="tn-skeleton tn-margin-bottom"></view>
-        <view class="tn-skeleton"></view>
-      </view>
-
-      <!-- 评论列表 -->
-      <view class="comment-section tn-bg-white tn-margin-top-sm" v-if="commentList.length || !loadingComment">
-        <view class="section-title tn-padding">
-          <text class="tn-text-bold tn-text-lg">评论 {{ commentTotal ? '(' + commentTotal + ')' : '' }}</text>
-        </view>
-
-        <!-- 评论项 -->
-        <view class="comment-item tn-flex" v-for="(item, index) in commentList" :key="item.id || index">
-          <view class="logo-pic">
-            <view class="logo-image" :style="commentAvatarStyle(item)"></view>
-          </view>
-          <view class="comment-body tn-flex-1 tn-padding-left-sm">
-            <view class="tn-text-bold tn-text-sm">{{ item.userName || '匿名用户' }}</view>
-            <view class="tn-margin-top-xs tn-text-sm">{{ item.content }}</view>
-            <view class="tn-color-gray tn-text-xs tn-margin-top-xs">{{ formatTime(item.createTime) }}</view>
-          </view>
-        </view>
-
-        <!-- 评论空状态 -->
-        <view class="comment-empty tn-text-center tn-padding" v-if="!commentList.length && !loadingComment">
-          <text class="tn-color-gray tn-text-sm">暂无评论，快来抢沙发~</text>
-        </view>
-
-        <!-- 加载更多 -->
-        <view class="tn-text-center tn-padding" v-if="commentList.length < commentTotal" @click="loadMoreComments">
-          <text class="tn-color-gray tn-text-sm">点击加载更多</text>
-        </view>
-      </view>
-
-      <!-- 底部占位，防止被评论输入框遮挡 -->
-      <view style="height: 140rpx;"></view>
     </scroll-view>
 
-    <!-- 底部评论输入 -->
-    <view class="comment-input-bar tn-flex tn-flex-col-center tn-bg-white">
+    <!-- 保留真实评论接口的底部互动栏 -->
+    <view class="comment-footer">
       <input
         class="comment-input"
         type="text"
         v-model="commentText"
-        placeholder="写下你的评论..."
+        :focus="commentFocus"
+        placeholder="请文明发言"
         placeholder-class="comment-placeholder"
         confirm-type="send"
+        @blur="commentFocus = false"
         @confirm="handleSubmitComment"
       />
-      <view class="send-btn" :class="{ disabled: !commentText.trim() || submitting }" @click="handleSubmitComment">
-        <text class="tn-color-white tn-text-sm">发送</text>
+      <view class="footer-like" @tap="handleLike">
+        <text :class="isLiked ? 'tn-icon-like-fill footer-like--active' : 'tn-icon-like-lack'"></text>
+        <text>{{ likeCount }}</text>
       </view>
+      <view
+        class="send-btn"
+        :class="{ 'send-btn--disabled': !commentText.trim() || submitting }"
+        @tap="handleSubmitComment"
+      >{{ submitting ? '发送中' : '发送' }}</view>
     </view>
   </view>
 </template>
@@ -158,6 +175,8 @@
         likeCount: 0,
         // 评论输入内容
         commentText: '',
+        // 是否聚焦底部评论框
+        commentFocus: false,
         // 评论提交中
         submitting: false
       }
@@ -193,9 +212,24 @@
       this.initData()
     },
     methods: {
+      openMember(memberId) {
+        if (!memberId) return
+        uni.navigateTo({ url: `/pages/member/profile?memberId=${memberId}` })
+      },
       // 返回上一页
       goBack() {
         uni.navigateBack({ delta: 1 })
+      },
+
+      goHome() {
+        uni.reLaunch({ url: '/pages/index/index' })
+      },
+
+      focusComment() {
+        this.commentFocus = false
+        this.$nextTick(() => {
+          this.commentFocus = true
+        })
       },
 
       // 评论项头像样式：无图时用兜底（按评论id取模稳定）
@@ -518,6 +552,367 @@
     border-radius: 36rpx;
     &.disabled {
       background-color: #CCCCCC;
+    }
+  }
+
+  /* 原 momentPages/details 模板布局 */
+  .template-details {
+    min-height: 100vh;
+    overflow: hidden;
+    background-color: #FFFFFF;
+  }
+
+  .nav-capsule {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 150rpx;
+    height: 58rpx;
+    box-sizing: border-box;
+    color: #FFFFFF;
+    font-size: 31rpx;
+    border: 1rpx solid rgba(255, 255, 255, 0.55);
+    border-radius: 100rpx;
+    background-color: rgba(0, 0, 0, 0.52);
+
+    &__item {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    &__line {
+      width: 1rpx;
+      height: 30rpx;
+      background-color: rgba(255, 255, 255, 0.55);
+    }
+  }
+
+  .detail-scroll {
+    width: 100%;
+    height: 100vh;
+    box-sizing: border-box;
+    padding-bottom: 0;
+  }
+
+  .blogger__item {
+    padding: 34rpx 30rpx 30rpx;
+  }
+
+  .blogger__author {
+    min-height: 76rpx;
+  }
+
+  .blogger__more,
+  .comment-more {
+    color: #AAAAAA;
+    font-size: 34rpx;
+  }
+
+  .avatar {
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    background-position: center;
+    background-size: cover;
+    background-color: #F1F1F1;
+
+    &--author {
+      width: 72rpx;
+      height: 72rpx;
+    }
+
+    &--comment {
+      width: 60rpx;
+      height: 60rpx;
+    }
+  }
+
+  .author-info {
+    min-width: 0;
+    padding-left: 18rpx;
+
+    &__name {
+      max-width: 420rpx;
+      overflow: hidden;
+      color: #242424;
+      font-size: 29rpx;
+      font-weight: bold;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__meta {
+      margin-top: 8rpx;
+      color: #A6A6A6;
+      font-size: 22rpx;
+    }
+  }
+
+  .blogger__body {
+    margin-left: 90rpx;
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 22rpx;
+  }
+
+  .post-tag {
+    margin: 0 14rpx 14rpx 0;
+    padding: 7rpx 15rpx;
+    color: #444444;
+    font-size: 22rpx;
+    border-radius: 10rpx;
+    background-color: #F2F2F2;
+
+    .tn-icon-spiral {
+      padding-right: 8rpx;
+    }
+  }
+
+  .post-title {
+    margin-top: 18rpx;
+    color: #222222;
+    font-size: 34rpx;
+    font-weight: bold;
+    line-height: 1.45;
+  }
+
+  .post-content {
+    margin-top: 14rpx;
+    color: #333333;
+    font-size: 28rpx;
+    line-height: 1.8;
+    text-align: justify;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .post-images {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 20rpx;
+  }
+
+  .post-image {
+    box-sizing: border-box;
+    margin: 0 12rpx 12rpx 0;
+    border-radius: 16rpx;
+    background-color: #F2F2F2;
+
+    &--one {
+      width: 82%;
+      height: 360rpx;
+    }
+
+    &--double {
+      width: calc(50% - 12rpx);
+      height: 240rpx;
+    }
+
+    &--grid {
+      width: calc(33.333% - 12rpx);
+      height: 176rpx;
+    }
+  }
+
+  .post-meta {
+    margin-top: 18rpx;
+    color: #A6A6A6;
+    font-size: 22rpx;
+
+    &__actions {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .post-meta__actions > text + text,
+  .like-action > text + text {
+    padding-left: 8rpx;
+  }
+
+  .like-action {
+    display: flex;
+    align-items: center;
+    margin-left: 18rpx;
+
+    &--active {
+      color: #E64A4A;
+    }
+  }
+
+  .detail-loading {
+    padding: 50rpx 30rpx;
+  }
+
+  .skeleton {
+    width: 100%;
+    height: 34rpx;
+    margin-bottom: 24rpx;
+    border-radius: 8rpx;
+    background-color: #F1F1F1;
+
+    &--short {
+      width: 44%;
+    }
+  }
+
+  .section-strip {
+    height: 18rpx;
+    background-color: #F5F5F5;
+  }
+
+  .comment-section {
+    margin: 0;
+    padding: 0 30rpx;
+    border-radius: 0;
+  }
+
+  .comment-header {
+    min-height: 102rpx;
+    border-bottom: 1rpx solid #F0F0F0;
+
+    &__title {
+      color: #222222;
+      font-size: 29rpx;
+      font-weight: bold;
+    }
+
+    &__action {
+      color: #999999;
+      font-size: 24rpx;
+    }
+  }
+
+  .comment-item {
+    padding: 30rpx 0 28rpx;
+    border-bottom: 1rpx solid #F1F1F1;
+  }
+
+  .comment-author {
+    padding-left: 16rpx;
+
+    &__name {
+      color: #333333;
+      font-size: 26rpx;
+      font-weight: bold;
+    }
+
+    &__meta {
+      margin-top: 5rpx;
+      color: #AAAAAA;
+      font-size: 20rpx;
+    }
+  }
+
+  .comment-body {
+    min-width: 0;
+    margin: 18rpx 20rpx 10rpx 76rpx;
+    color: #333333;
+    font-size: 27rpx;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .comment-meta {
+    margin-left: 76rpx;
+    color: #AAAAAA;
+    font-size: 21rpx;
+
+    &__reply {
+      padding-left: 24rpx;
+      color: #777777;
+    }
+  }
+
+  .comment-empty,
+  .comment-loading,
+  .load-more {
+    padding: 60rpx 0;
+    color: #AAAAAA;
+    font-size: 24rpx;
+    text-align: center;
+  }
+
+  .load-more {
+    padding: 30rpx 0;
+  }
+
+  .bottom-placeholder {
+    height: calc(150rpx + constant(safe-area-inset-bottom));
+    height: calc(150rpx + env(safe-area-inset-bottom));
+  }
+
+  .comment-footer {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 16rpx 24rpx calc(16rpx + constant(safe-area-inset-bottom));
+    padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+    background-color: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
+  }
+
+  .comment-input {
+    flex: 1;
+    height: 68rpx;
+    padding: 0 24rpx;
+    color: #333333;
+    font-size: 25rpx;
+    border-radius: 36rpx;
+    background-color: #F4F4F4;
+  }
+
+  .comment-placeholder {
+    color: #AAAAAA;
+    font-size: 25rpx;
+  }
+
+  .footer-like {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 64rpx;
+    margin-left: 16rpx;
+    color: #888888;
+    font-size: 20rpx;
+
+    > text:first-child {
+      font-size: 32rpx;
+    }
+
+    &--active {
+      color: #E64A4A;
+    }
+  }
+
+  .send-btn {
+    min-width: 104rpx;
+    width: auto;
+    height: 68rpx;
+    margin-left: 14rpx;
+    padding: 0 18rpx;
+    color: #FFFFFF;
+    font-size: 24rpx;
+    line-height: 68rpx;
+    text-align: center;
+    border-radius: 36rpx;
+    background-color: #000000;
+
+    &--disabled {
+      background-color: #C4C4C4;
     }
   }
 </style>

@@ -7,6 +7,7 @@
 - `V20260810_01__seed_p0_permissions.sql`：业务权限目录初始化。
 - `V20260810_02__seed_default_roles.sql`：默认角色及角色权限初始化。
 - `V20260810_03__create_forum_content_core.sql`：圈子、帖子、评论、点赞表及默认综合圈子。
+- `V20260812_04__create_user_safety.sql`：用户举报与屏蔽表。
 - `R20260810_03__create_forum_content_core.sql`：论坛内容核心表人工回滚脚本，会删除已有论坛数据。
 - `demo.sql`：脚手架 Demo 表。
 

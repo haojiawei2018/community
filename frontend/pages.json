@@ -42,7 +42,23 @@
     {
       "path": "pages/post/publish",
       "style": {
-      	"navigationBarTitleText": "发布帖子"
+        "navigationBarTitleText": "发布帖子"
+      }
+    },
+    {
+      "path": "pages/mine/posts",
+      "style": {
+        "navigationBarTitleText": "我的帖子",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F6F6F6"
+      }
+    },
+    {
+      "path": "pages/member/profile",
+      "style": {
+        "navigationBarTitleText": "用户主页",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F6F6F6"
       }
     }
 	],

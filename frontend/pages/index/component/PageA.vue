@@ -214,7 +214,7 @@
         </view>
       </scroll-view>
 
-      <view v-if="current === 0 && list.length > 0">
+      <view v-if="list.length > 0">
         <view class="home-list">
           <tn-waterfall ref="waterfall" v-model="list" @finish="handleWaterFallFinish">
             <template v-slot:left="{ leftList }">
@@ -321,7 +321,7 @@
       </view>
       
       <view
-        v-if="current === 0 && list.length === 0"
+        v-if="list.length === 0"
         class="empty-wrap"
         :style="{ height: 'calc(100vh - ' + vuex_custom_bar_height + 'px - 90rpx)', paddingBottom: 'calc(' + vuex_custom_bar_height + 'px + 90rpx)' }"
       >
@@ -329,48 +329,26 @@
           <view class="tn-text-center" style="font-size: 260rpx;">
             <text class="tn-icon-game tn-color-gray--disabled"></text>
           </view>
-          <view class="tn-color-gray tn-text-center tn-text-lg">{{ loadError ? '内容加载失败' : '暂无内容' }}</view>
+          <view class="tn-color-gray tn-text-center tn-text-lg">{{ loadError ? '内容加载失败' : (current === 3 ? '暂时没有关注动态' : '暂无内容') }}</view>
+          <tn-button v-if="current === 3 && !isLoggedIn" class="tn-margin-top" backgroundColor="#000000"
+            fontColor="#FFFFFF" shape="round" size="sm" @click="goLogin">登录后查看关注</tn-button>
           <tn-button v-if="loadError" class="tn-margin-top" backgroundColor="#000000" fontColor="#FFFFFF"
             shape="round" size="sm" @click="fetchPostList(true)">重新加载</tn-button>
         </view>
       </view>
 
-      <view
-        v-if="current==1"
-        class="empty-wrap"
-        :style="{ height: 'calc(100vh - ' + vuex_custom_bar_height + 'px - 90rpx)', paddingBottom: 'calc(' + vuex_custom_bar_height + 'px + 90rpx)' }"
-      >
-        <view class="empty-page" style="background-color: #F6F6F6;">
-          <view class="tn-text-center" style="font-size: 260rpx;">
-            <text class="tn-icon-game tn-color-gray--disabled"></text>
-          </view>
-          <view class="tn-color-gray tn-text-center tn-text-lg">暂无内容，嘤嘤嘤</view>
-        </view>
-      </view>
-
-      <view class="empty-wrap" v-if="current==2" :style="{ height: 'calc(100vh - ' + vuex_custom_bar_height + 'px - 90rpx)', paddingBottom: 'calc(' + vuex_custom_bar_height + 'px + 90rpx)' }">
-        <view class="empty-page" style="background-color: #F6F6F6;">
-          <view class="tn-text-center" style="font-size: 260rpx;">
-            <text class="tn-icon-game tn-color-gray--disabled"></text>
-          </view>
-          <view class="tn-color-gray tn-text-center tn-text-lg">暂无内容，嘤嘤嘤嘤嘤嘤</view>
-        </view>
-      </view>
-
-      <view class="empty-wrap" v-if="current==3" :style="{ height: 'calc(100vh - ' + vuex_custom_bar_height + 'px - 90rpx)', paddingBottom: 'calc(' + vuex_custom_bar_height + 'px + 90rpx)' }">
-        <view class="empty-page" style="background-color: #F6F6F6;">
-          <view class="tn-text-center" style="font-size: 260rpx;">
-            <text class="tn-icon-game tn-color-gray--disabled"></text>
-          </view>
-          <view class="tn-color-gray tn-text-center tn-text-lg">暂无内容，嘤嘤嘤嘤嘤嘤嘤</view>
-        </view>
-      </view>
       
     </view> 
     
     
     <!-- popup会有延迟，采用这种方式来优化弹窗的优化体验-->
-    <user-modal v-model="showUserModal"></user-modal>
+    <user-modal
+      v-model="showUserModal"
+      :community="communityInfo"
+      :circles="circleList"
+      :active-circle-id="activeCircleId"
+      @select-circle="selectCircle"
+    ></user-modal>
     
     <view class="tn-tabbar-height"></view>
   </view>
@@ -379,6 +357,7 @@
 <script>
   import UserModal from '@/components/user/user.vue'
   import { community } from '@/api/index.js'
+  import session from '@/utils/session.js'
 
   // 日志前缀，便于在控制台过滤
   const LOG_TAG = '[PageA]'
@@ -386,6 +365,12 @@
   export default {
     components: { UserModal },
     name: 'PageA',
+    props: {
+      communityInfo: {
+        type: Object,
+        default: () => ({ communityName: '开源社区' })
+      }
+    },
     data() {
       return {
         /* 选择弹窗*/
@@ -428,9 +413,9 @@
         current: 0,
         fixedList: [
           {name: '推荐'},
-          {name: '热门'},
-          {name: '独家'},
-          {name: '热卖'}
+          {name: '最新'},
+          {name: '热门'}
+          // {name: '关注'}
         ],
         
         cardCur: 0,
@@ -768,6 +753,9 @@
     },
 
     methods: {
+      goLogin() {
+        uni.navigateTo({ url: '/pages/login/login' })
+      },
       handlePostPublished() {
         this.fetchPostList(true)
       },
@@ -798,6 +786,7 @@
       // tab选项卡切换
       tabChange(index) {
         this.current = index
+        this.fetchPostList(true)
       },
       // 跳转
       tn(e) {
@@ -808,6 +797,13 @@
       /* 瀑布流：对接真实帖子列表接口 */
       // 获取帖子列表
       async fetchPostList(isRefresh = false) {
+        if (this.current === 3 && !session.isAccessTokenUsable()) {
+          this.list = []
+          this.hasMore = false
+          this.loadStatus = 'nomore'
+          this.loadError = false
+          return
+        }
         if (this.loading) {
           console.log(LOG_TAG, '正在加载中，忽略重复请求')
           return
@@ -828,7 +824,9 @@
         const params = {
           page: this.page,
           pageSize: this.pageSize,
-          circleId: this.activeCircleId || undefined
+          circleId: this.activeCircleId || undefined,
+          sort: this.current === 2 ? 'HOT' : (this.current === 1 ? 'LATEST' : 'RECOMMENDED'),
+          following: this.current === 3 ? true : undefined
         }
         console.log(LOG_TAG, '>>> 请求帖子列表, params:', params)
         const startTime = Date.now()
@@ -911,19 +909,20 @@
 
 <style lang="scss" scoped>
   .pagesA {
+    position: relative;
     min-height: 100%;
-    background-color: #1E1E1E80;
+    background: linear-gradient(to bottom, transparent 0, transparent 300rpx, #F6F6F6 620rpx);
   }
 
   .home-list {
     padding: 20rpx 20rpx 100rpx;
-    background-color: #F6F6F6;
+    background: transparent;
   }
 
   .circle-filter {
     width: 100%;
     white-space: nowrap;
-    background-color: #F6F6F6;
+    background: transparent;
   }
 
   .circle-filter__inner {

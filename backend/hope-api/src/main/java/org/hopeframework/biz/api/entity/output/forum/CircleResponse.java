@@ -11,6 +11,8 @@ public class CircleResponse {
     private String coverUrl;
     private String description;
     private String joinMode;
+    private String status;
+    private Integer sortOrder;
     private Long memberCount;
     private Long postCount;
 }

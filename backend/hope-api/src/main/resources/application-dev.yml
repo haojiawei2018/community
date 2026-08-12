@@ -1,4 +1,4 @@
-# 开发环境配置：默认连接本机 MySQL / Redis，按需修改
+# 开发环境配置：敏感信息必须通过环境变量传入
 spring:
   datasource:
     dynamic:
@@ -7,9 +7,9 @@ spring:
       datasource:
         master:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://localhost:3306/hope?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: '${DB_URL:jdbc:mysql://localhost:3306/community?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}'
+          username: '${DB_USERNAME:root}'
+          password: '${DB_PASSWORD:}'
         # 多数据源示例：新增数据源时在此追加配置，并在 Service/Mapper 上使用 @DS("数据源名")
         # slave:
         #   driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,11 +17,22 @@ spring:
         #   username: root
         #   password: root
   redis:
-    host: localhost
-    port: 6379
-    password:
-    database: 0
+    host: '${REDIS_HOST:localhost}'
+    port: ${REDIS_PORT:6379}
+    password: '${REDIS_PASSWORD:}'
+    database: ${REDIS_DATABASE:0}
 
 logging:
   level:
     org.hopeframework.biz.api: debug
+
+# Aliyun OSS。AccessKey 不得写入 Git，未配置时上传接口不可用。
+aliyun:
+  oss:
+    endpoint: '${ALIYUN_OSS_ENDPOINT:}'
+    access-key-id: '${ALIYUN_OSS_ACCESS_KEY_ID:}'
+    access-key-secret: '${ALIYUN_OSS_ACCESS_KEY_SECRET:}'
+    bucket-name: '${ALIYUN_OSS_BUCKET_NAME:}'
+    public-domain: '${ALIYUN_OSS_PUBLIC_DOMAIN:}'
+    object-prefix: '${ALIYUN_OSS_OBJECT_PREFIX:images}'
+    max-image-size: '${ALIYUN_OSS_MAX_IMAGE_SIZE:10MB}'

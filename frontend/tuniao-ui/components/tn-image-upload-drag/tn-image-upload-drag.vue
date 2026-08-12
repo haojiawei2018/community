@@ -127,6 +127,11 @@
         type: String,
         default: ''
       },
+      // 自定义公共上传函数：(filePath, { onProgress, formData }) => Promise<{ url }>
+      customUpload: {
+        type: Function,
+        default: null
+      },
       // 上传文件的字段名称
       name: {
         type: String,
@@ -454,13 +459,37 @@
             // 为true的情况，不进行操作
           }
         }
-        // 检查上传地址
-        if (!this.action) {
+        // 检查上传方式
+        if (!this.action && !this.customUpload) {
           this.showToast('请配置上传地址', true)
           return
         }
         this.lists[index].data.error = false
         this.uploading = true
+        if (this.customUpload) {
+          try {
+            const data = await this.customUpload(this.lists[index].data.url, {
+              formData: this.formData,
+              onProgress: res => {
+                if (res.progress > 0) {
+                  this.lists[index].data.progress = res.progress
+                  this.$emit('on-progress', res, index, this.sortList(), this.index)
+                }
+              }
+            })
+            this.lists[index].data.response = data
+            this.lists[index].data.progress = 100
+            this.lists[index].data.error = false
+            this.$emit('on-success', data, index, this.sortList(), this.index)
+          } catch (err) {
+            this.uploadError(index, err)
+          } finally {
+            this.uploading = false
+            this.uploadFile(index + 1)
+            this.$emit('on-change', this.lists[index] && this.lists[index].data.response, index, this.sortList(), this.index)
+          }
+          return
+        }
         // 创建上传对象
         const task = uni.uploadFile({
           url: this.action,

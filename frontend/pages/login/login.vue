@@ -1,32 +1,66 @@
 <template>
   <view class="template-login tn-safe-area-inset-bottom">
     <!-- 顶部自定义导航 -->
-    <tn-nav-bar :isBack="false" :bottomShadow="false" backgroundColor="#FFFFFF00">
+    <tn-nav-bar
+      :isBack="false"
+      :bottomShadow="false"
+      backgroundColor="#FFFFFF00"
+      fontColor="#FFFFFF"
+    >
       <view class="custom-nav tn-flex tn-flex-col-center tn-flex-row-center">
-        <text class="tn-text-bold tn-text-xl">登录</text>
+        <text class="nav-title tn-text-bold tn-text-xl">{{ mode === 'login' ? '登录' : '注册' }}</text>
       </view>
     </tn-nav-bar>
 
     <!-- 顶部渐变背景 -->
-    <view class="top-bg"></view>
+    <view
+      class="top-bg"
+      :style="{ height: 'calc(' + vuex_custom_bar_height + 'px + 440rpx)' }"
+    >
+      <view class="top-bg__halo top-bg__halo--left"></view>
+      <view class="top-bg__halo top-bg__halo--right"></view>
+    </view>
 
-    <view class="login-wrap" :style="{paddingTop: vuex_custom_bar_height + 60 + 'px'}">
+    <view
+      class="login-wrap"
+      :style="{ paddingTop: 'calc(' + vuex_custom_bar_height + 'px + 28rpx)' }"
+    >
       <!-- Logo / 标题 -->
       <view class="login-header tn-text-center">
         <view class="logo-icon tn-flex tn-flex-row-center tn-flex-col-center">
           <image v-if="community.logoUrl" class="community-logo" :src="community.logoUrl" mode="aspectFill"></image>
           <text v-else class="tn-icon-game-fill tn-text-xxxl"></text>
         </view>
-        <view class="tn-text-bold tn-text-xxxl tn-margin-top">{{ community.communityName || '游戏社区' }}</view>
-        <view class="tn-color-gray tn-text-sm tn-margin-top-xs">发现更多游戏乐趣</view>
+        <view class="community-name tn-text-bold">{{ community.communityName || '游戏社区' }}</view>
+        <view class="community-slogan">发现更多游戏乐趣</view>
       </view>
 
       <!-- 表单区域 -->
-      <view class="login-form tn-margin-top-xl">
+      <view class="login-form">
+        <view class="auth-tabs">
+          <view
+            class="auth-tabs__item"
+            :class="{ 'auth-tabs__item--active': mode === 'login' }"
+            @tap="setMode('login')"
+          >登录</view>
+          <view
+            class="auth-tabs__item"
+            :class="{ 'auth-tabs__item--active': mode === 'register' }"
+            @tap="setMode('register')"
+          >注册</view>
+        </view>
+
+        <view class="form-intro">
+          <view class="form-intro__title">{{ mode === 'login' ? '欢迎回来' : '创建社区账号' }}</view>
+          <view class="form-intro__desc">
+            {{ mode === 'login' ? '登录后参与讨论，发现更多同好' : '注册后即可发布帖子和参与互动' }}
+          </view>
+        </view>
+
         <!-- 账号输入 -->
         <view class="form-item">
           <view class="form-item__label">
-            <text class="tn-icon-my-form tn-text-lg"></text>
+            <text class="tn-icon-my tn-text-lg"></text>
           </view>
           <input
             class="form-item__input"
@@ -34,7 +68,7 @@
             v-model="formData.username"
             placeholder="请输入账号"
             placeholder-class="form-item__placeholder"
-            maxlength="50"
+            maxlength="32"
           />
         </view>
 
@@ -49,7 +83,7 @@
             v-model="formData.password"
             placeholder="请输入密码"
             placeholder-class="form-item__placeholder"
-            maxlength="30"
+            maxlength="72"
           />
           <view class="form-item__suffix" @click="showPassword = !showPassword">
             <text :class="showPassword ? 'tn-icon-eye' : 'tn-icon-eye-hide'" class="tn-text-lg tn-color-gray"></text>
@@ -69,6 +103,10 @@
             placeholder-class="form-item__placeholder"
             maxlength="20"
           />
+        </view>
+
+        <view v-if="mode === 'register'" class="register-tip">
+          账号以字母开头，可使用字母、数字和下划线；密码为 8-72 位
         </view>
 
         <!-- 登录按钮 -->
@@ -137,8 +175,13 @@
 
       // 切换登录/注册模式
       toggleMode() {
-        this.mode = this.mode === 'login' ? 'register' : 'login'
-        this.formData.nickname = ''
+        this.setMode(this.mode === 'login' ? 'register' : 'login')
+      },
+
+      setMode(mode) {
+        if (this.mode === mode) return
+        this.mode = mode
+        if (mode === 'login') this.formData.nickname = ''
       },
 
       // 表单校验
@@ -211,7 +254,20 @@
 <style lang="scss" scoped>
   .template-login {
     min-height: 100vh;
+    box-sizing: border-box;
+    overflow-x: hidden;
     background-color: #FFFFFF;
+    padding-bottom: calc(48rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  }
+
+  .custom-nav {
+    width: 100%;
+    height: 100%;
+  }
+
+  .nav-title {
+    color: #FFFFFF;
   }
 
   /* 顶部渐变背景 */
@@ -220,26 +276,48 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 520rpx;
     background: linear-gradient(180deg, #1A1A1A 0%, #000000 100%);
     border-bottom-left-radius: 60rpx;
     border-bottom-right-radius: 60rpx;
     z-index: 0;
+    overflow: hidden;
+
+    &__halo {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.055);
+
+      &--left {
+        width: 320rpx;
+        height: 320rpx;
+        left: -160rpx;
+        bottom: -130rpx;
+      }
+
+      &--right {
+        width: 220rpx;
+        height: 220rpx;
+        right: -70rpx;
+        top: 150rpx;
+      }
+    }
   }
 
   .login-wrap {
     position: relative;
     z-index: 1;
-    padding: 0 60rpx;
+    box-sizing: border-box;
+    padding-left: 52rpx;
+    padding-right: 52rpx;
   }
 
   /* Logo / 标题 */
   .login-header {
-    padding-top: 40rpx;
+    padding-top: 12rpx;
     .logo-icon {
-      width: 140rpx;
-      height: 140rpx;
-      border-radius: 30rpx;
+      width: 124rpx;
+      height: 124rpx;
+      border-radius: 28rpx;
       background-color: #FFFFFF;
       margin: 0 auto;
       box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.15);
@@ -249,12 +327,24 @@
       .community-logo {
         width: 100%;
         height: 100%;
-        border-radius: 30rpx;
+        border-radius: 28rpx;
       }
     }
-    .tn-text-xxxl,
-    .tn-text-sm {
+
+    .community-name {
+      margin-top: 24rpx;
+      padding: 0 24rpx;
       color: #FFFFFF;
+      font-size: 38rpx;
+      line-height: 52rpx;
+      word-break: break-all;
+    }
+
+    .community-slogan {
+      margin-top: 8rpx;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 26rpx;
+      line-height: 38rpx;
     }
   }
 
@@ -263,8 +353,74 @@
     background-color: #FFFFFF;
     border-radius: 24rpx;
     padding: 50rpx 40rpx;
-    margin-top: 60rpx;
+    margin-top: 48rpx;
     box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
+  }
+
+  .auth-tabs {
+    display: flex;
+    align-items: center;
+    padding: 6rpx;
+    margin-bottom: 38rpx;
+    border-radius: 18rpx;
+    background-color: #F4F4F4;
+
+    &__item {
+      flex: 1;
+      height: 68rpx;
+      color: #999999;
+      font-size: 28rpx;
+      line-height: 68rpx;
+      text-align: center;
+      border-radius: 14rpx;
+      transition: all 0.2s ease;
+
+      &--active {
+        color: #FFFFFF;
+        font-weight: bold;
+        background-color: #000000;
+        box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.14);
+      }
+    }
+  }
+
+  .form-intro {
+    margin-bottom: 18rpx;
+
+    &__title {
+      color: #222222;
+      font-size: 34rpx;
+      font-weight: bold;
+      line-height: 48rpx;
+    }
+
+    &__desc {
+      margin-top: 6rpx;
+      color: #AAAAAA;
+      font-size: 24rpx;
+      line-height: 36rpx;
+    }
+  }
+
+  @media screen and (max-height: 700px) {
+    .login-header {
+      padding-top: 0;
+
+      .logo-icon {
+        width: 108rpx;
+        height: 108rpx;
+      }
+
+      .community-name {
+        margin-top: 18rpx;
+      }
+    }
+
+    .login-form {
+      margin-top: 36rpx;
+      padding-top: 38rpx;
+      padding-bottom: 38rpx;
+    }
   }
 
   .form-item {
@@ -294,5 +450,15 @@
       width: 60rpx;
       text-align: center;
     }
+  }
+
+  .register-tip {
+    margin-top: 18rpx;
+    padding: 18rpx 20rpx;
+    color: #888888;
+    font-size: 22rpx;
+    line-height: 34rpx;
+    border-radius: 12rpx;
+    background-color: #F7F7F7;
   }
 </style>

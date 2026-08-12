@@ -1,4 +1,4 @@
-# 生产环境配置：部署时替换为真实数据库/缓存地址
+# 生产环境配置：所有连接信息通过环境变量传入
 spring:
   datasource:
     dynamic:
@@ -7,14 +7,24 @@ spring:
       datasource:
         master:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://localhost:3306/hope?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          url: '${DB_URL}'
+          username: '${DB_USERNAME}'
+          password: '${DB_PASSWORD}'
   redis:
-    host: localhost
-    port: 6379
-    password:
-    database: 0
+    host: '${REDIS_HOST:localhost}'
+    port: ${REDIS_PORT:6379}
+    password: '${REDIS_PASSWORD:}'
+    database: ${REDIS_DATABASE:0}
+
+aliyun:
+  oss:
+    endpoint: '${ALIYUN_OSS_ENDPOINT}'
+    access-key-id: '${ALIYUN_OSS_ACCESS_KEY_ID}'
+    access-key-secret: '${ALIYUN_OSS_ACCESS_KEY_SECRET}'
+    bucket-name: '${ALIYUN_OSS_BUCKET_NAME}'
+    public-domain: '${ALIYUN_OSS_PUBLIC_DOMAIN:}'
+    object-prefix: '${ALIYUN_OSS_OBJECT_PREFIX:images}'
+    max-image-size: '${ALIYUN_OSS_MAX_IMAGE_SIZE:10MB}'
 
 logging:
   level:

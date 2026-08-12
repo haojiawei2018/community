@@ -9,6 +9,9 @@ import org.hopeframework.biz.api.entity.output.forum.CircleResponse;
 import org.hopeframework.biz.api.entity.output.forum.CommentResponse;
 import org.hopeframework.biz.api.entity.output.forum.LikeResponse;
 import org.hopeframework.biz.api.entity.output.forum.PostResponse;
+import org.hopeframework.biz.api.entity.output.forum.TopicResponse;
+import org.hopeframework.biz.api.entity.output.user.UserCommunitySummaryResponse;
+import org.hopeframework.biz.api.entity.output.user.MemberProfileResponse;
 
 import java.util.List;
 
@@ -22,4 +25,10 @@ public interface IForumService {
     CommentResponse createComment(Long postId, CreateCommentRequest request);
     LikeResponse likePost(Long postId);
     LikeResponse unlikePost(Long postId);
+    UserCommunitySummaryResponse currentUserSummary();
+    PageResult<PostResponse> pageCurrentUserPosts(PostPageRequest request);
+    void deleteCurrentUserPost(Long postId);
+    MemberProfileResponse getMemberProfile(Long memberId);
+    PageResult<PostResponse> pageMemberPosts(Long memberId, PostPageRequest request);
+    List<TopicResponse> listTopics();
 }

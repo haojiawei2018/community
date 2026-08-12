@@ -1,135 +1,152 @@
 <template>
-  <view class="template-publish tn-safe-area-inset-bottom">
-    <!-- 顶部自定义导航 -->
+  <view class="template-edit tn-safe-area-inset-bottom">
+    <!-- 沿用原模板的取消按钮和发布类型导航 -->
     <tn-nav-bar fixed customBack :bottomShadow="false" backgroundColor="#FFFFFF">
-      <view slot="back" class="tn-custom-nav-bar__back" @click="goBack">
-        <text class="icon tn-icon-left-arrow"></text>
-      </view>
-      <view class="tn-flex tn-flex-col-center tn-flex-row-between tn-padding-left tn-padding-right">
-        <text class="tn-text-bold tn-text-lg">发布帖子</text>
-        <view class="publish-btn" :class="{ disabled: submitting }" @click="handleSubmit">
-          <text class="tn-color-white tn-text-sm">{{ submitting ? '发布中...' : '发布' }}</text>
-        </view>
+      <view slot="back" class="cancel-btn" @tap="goBack">取消</view>
+      <view class="edit-mode tn-flex tn-flex-col-center tn-flex-row-center">
+        <view class="edit-mode__item edit-mode__item--active">发图文</view>
       </view>
     </tn-nav-bar>
 
-    <!-- 内容区域 -->
-    <view class="publish-wrap" :style="{paddingTop: vuex_custom_bar_height + 'px'}">
-      <view class="form-card tn-bg-white">
-        <view class="form-row">
-          <view class="row-label tn-flex tn-flex-col-center tn-flex-row-between">
-            <text class="tn-text-sm tn-color-gray">发布到圈子</text>
-            <text v-if="loadingCircles" class="tn-text-sm tn-color-gray">加载中...</text>
-          </view>
-          <scroll-view v-if="circleList.length" scroll-x class="circle-select" show-scrollbar="false">
-            <view class="tn-flex tn-flex-col-center circle-select__inner">
-              <view v-for="circle in circleList" :key="circle.id" class="circle-option"
-                :class="{ active: String(formData.circleId) === String(circle.id) }"
-                @click="formData.circleId = circle.id">
-                {{ circle.circleName }}
-              </view>
+    <scroll-view scroll-y class="edit-scroll" enable-back-to-top>
+      <view class="edit-content" :style="{ paddingTop: vuex_custom_bar_height + 'px' }">
+        <!-- 原发布页的图片拖拽区域 -->
+        <view class="upload-section">
+          <view class="section-title tn-flex tn-flex-row-between tn-flex-col-center">
+            <view>
+              <text class="tn-icon-image section-title__icon"></text>
+              <text>添加图片</text>
             </view>
-          </scroll-view>
-          <view v-else-if="!loadingCircles" class="tn-color-gray tn-text-sm tn-margin-top-sm">暂无可发布的圈子</view>
-        </view>
-
-        <view class="form-divider"></view>
-
-        <!-- 标题 -->
-        <view class="form-row">
-          <input
-            class="title-input"
-            type="text"
-            v-model="formData.title"
-            placeholder="给帖子起个标题（必填）"
-            placeholder-class="input-placeholder"
-            maxlength="50"
-          />
-        </view>
-
-        <view class="form-divider"></view>
-
-        <!-- 正文 -->
-        <view class="form-row">
-          <textarea
-            class="content-input"
-            v-model="formData.content"
-            placeholder="分享你的游戏心得、攻略或趣事..."
-            placeholder-class="input-placeholder"
-            maxlength="2000"
-            auto-height
-          />
-        </view>
-
-        <view class="form-divider"></view>
-
-        <!-- 图片上传 -->
-        <view class="form-row">
-          <view class="row-label">
-            <text class="tn-icon-image-fill tn-text-lg tn-color-gray"></text>
-            <text class="tn-padding-left-xs tn-text-sm tn-color-gray">添加图片（最多9张）</text>
+            <text class="section-title__extra">{{ fileList.length }}/9</text>
           </view>
-          <tn-image-upload
+          <tn-image-upload-drag
             ref="imageUpload"
-            :action="uploadAction"
-            :header="uploadHeader"
+            :customUpload="uploadImage"
             :fileList="fileList"
+            :width="210"
+            :height="210"
             :maxCount="9"
             :autoUpload="true"
             :showProgress="true"
+            uploadText="选择图片"
             @on-success="handleUploadSuccess"
             @on-error="handleUploadError"
             @on-remove="handleUploadRemove"
             @on-list-change="handleListChange"
-          ></tn-image-upload>
+          ></tn-image-upload-drag>
         </view>
 
-        <view class="form-divider"></view>
+        <!-- 后端要求的帖子标题 -->
+        <view class="title-field">
+          <input
+            class="title-input"
+            type="text"
+            v-model="formData.title"
+            placeholder="添加标题，让更多人看到"
+            placeholder-class="input-placeholder"
+            maxlength="50"
+          />
+          <text class="title-count">{{ formData.title.length }}/50</text>
+        </view>
 
-        <!-- 标签 -->
-        <view class="form-row">
-          <view class="row-label">
-            <text class="tn-icon-tag-fill tn-text-lg tn-color-gray"></text>
-            <text class="tn-padding-left-xs tn-text-sm tn-color-gray">添加标签</text>
+        <!-- 原发布页的正文编辑区域 -->
+        <view class="edit-textarea">
+          <textarea
+            v-model="formData.content"
+            maxlength="2000"
+            placeholder="添加正文，分享你的游戏心得、攻略或趣事..."
+            placeholder-class="input-placeholder"
+          ></textarea>
+          <view class="textarea-count">{{ formData.content.length }}/2000</view>
+        </view>
+
+        <!-- 话题标签 -->
+        <view class="tag-section">
+          <view class="section-title">
+            <text class="tn-icon-topics-fill section-title__icon"></text>
+            <text>添加话题</text>
           </view>
-          <!-- 已选标签 -->
-          <view class="tag-list tn-flex tn-flex-wrap tn-margin-top-sm" v-if="formData.tags.length">
+          <view v-if="formData.tags.length" class="tag-list">
             <view class="tag-item" v-for="(tag, idx) in formData.tags" :key="idx">
-              <text class="tn-text-sm">{{ tag }}</text>
-              <text class="tn-icon-close tn-padding-left-xs" @click="removeTag(idx)"></text>
+              <text># {{ tag }}</text>
+              <text class="tn-icon-close tag-item__close" @tap="removeTag(idx)"></text>
             </view>
           </view>
-          <!-- 标签输入 -->
-          <view class="tag-input-wrap tn-flex tn-flex-col-center tn-margin-top-sm">
+          <view class="tag-input-wrap tn-flex tn-flex-col-center">
             <input
               class="tag-input"
               type="text"
               v-model="tagInput"
-              placeholder="输入标签后回车添加"
+              placeholder="输入话题，回车添加"
               placeholder-class="input-placeholder"
               maxlength="8"
               confirm-type="done"
               @confirm="handleAddTag"
             />
-            <view class="tag-add-btn" @click="handleAddTag">
-              <text class="tn-icon-add tn-text-sm"></text>
+            <view class="tag-add-btn" @tap="handleAddTag">
+              <text class="tn-icon-add"></text>
             </view>
           </view>
         </view>
-      </view>
 
-      <!-- 字数统计 -->
-      <view class="word-count tn-text-right tn-padding-right tn-text-sm tn-color-gray">
-        {{ formData.content.length }} / 2000
+        <!-- 用原模板的设置行承载圈子选择 -->
+        <view class="option-section">
+          <view class="option-row">
+            <view class="option-row__left">
+              <text class="tn-icon-reload-planet-fill option-row__icon"></text>
+              <text>发布到圈子</text>
+            </view>
+            <text v-if="loadingCircles" class="option-row__hint">加载中...</text>
+            <text v-else class="option-row__hint">请选择</text>
+          </view>
+          <scroll-view v-if="circleList.length" scroll-x class="circle-select" show-scrollbar="false">
+            <view class="circle-select__inner">
+              <view
+                v-for="circle in circleList"
+                :key="circle.id"
+                class="circle-option"
+                :class="{ 'circle-option--active': String(formData.circleId) === String(circle.id) }"
+                @tap="formData.circleId = circle.id"
+              >{{ circle.circleName }}</view>
+            </view>
+          </scroll-view>
+          <view v-else-if="!loadingCircles" class="empty-circle">暂无可发布的圈子</view>
+
+          <view class="option-row option-row--last">
+            <view class="option-row__left">
+              <text class="tn-icon-trusty-fill option-row__icon"></text>
+              <text>帖子可见范围</text>
+            </view>
+            <view class="option-row__hint">
+              <text>公开</text>
+              <text class="tn-icon-right"></text>
+            </view>
+          </view>
+        </view>
+
+        <view class="footer-placeholder"></view>
+      </view>
+    </scroll-view>
+
+    <!-- 原模板底部悬浮发布区 -->
+    <view class="publish-footer">
+      <view class="publish-tip">
+        <text class="tn-icon-tip"></text>
+        <text>文明发言，共建友好社区</text>
+      </view>
+      <view
+        class="publish-button"
+        :class="{ 'publish-button--disabled': submitting || !circleList.length }"
+        @tap="handleSubmit"
+      >
+        <text>{{ submitting ? '发布中...' : '立即发布' }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script>
-  import { community } from '@/api/index.js'
-  import env from '@/config/env.js'
-  import session from '@/utils/session.js'
+  import { community, file } from '@/api/index.js'
 
   // 日志前缀，便于在控制台过滤
   const LOG_TAG = '[PostPublish]'
@@ -160,21 +177,10 @@
     onLoad() {
       this.fetchCircles()
     },
-    computed: {
-      // 图片上传地址：后端文件上传接口
-      uploadAction() {
-        return env.baseURL + '/api/v1/files/images'
-      },
-      // 上传请求头：携带 token
-      uploadHeader() {
-        const header = {}
-        const token = session.getAccessToken()
-        if (token) header.Authorization = `Bearer ${token}`
-        if (env.communityCode) header['X-Tenant-Code'] = env.communityCode
-        return header
-      }
-    },
     methods: {
+      uploadImage(filePath, options) {
+        return file.uploadImage(filePath, options)
+      },
       async fetchCircles() {
         this.loadingCircles = true
         try {
@@ -226,20 +232,9 @@
         console.log(LOG_TAG, '>>> 图片上传成功, index:', index)
         console.log(LOG_TAG, '<<< 上传响应 data:', JSON.stringify(data))
         console.log(LOG_TAG, '<<< 当前文件列表 lists:', JSON.stringify(lists))
-        // 后端返回 { code, data, message } 结构，data 为图片URL
-        let imageUrl = ''
-        if (data) {
-          // 兼容两种返回格式：data 直接是 URL 字符串 / data 是对象含 url 字段
-          if (typeof data === 'string') {
-            imageUrl = data
-          } else if (data.data) {
-            imageUrl = typeof data.data === 'string' ? data.data : (data.data.url || data.data.path || '')
-          } else if (data.url) {
-            imageUrl = data.url
-          }
-        }
+        const imageUrl = data && data.url
         if (imageUrl) {
-          this.uploadedImages.push(imageUrl)
+          this.$set(this.uploadedImages, index, imageUrl)
           console.log(LOG_TAG, '已收集图片URL:', imageUrl, '已上传图片列表:', this.uploadedImages)
         } else {
           console.warn(LOG_TAG, '未能从响应中解析图片URL，response:', JSON.stringify(data))
@@ -304,7 +299,8 @@
         const payload = {
           circleId: this.formData.circleId,
           title: this.formData.title.trim(),
-          content: this.formData.content.trim()
+          content: this.formData.content.trim(),
+          images: this.uploadedImages.filter(Boolean)
         }
         console.log(LOG_TAG, '>>> 请求发布帖子, payload:', JSON.stringify(payload))
         const startTime = Date.now()
@@ -329,44 +325,228 @@
 </script>
 
 <style lang="scss" scoped>
-  .template-publish {
+  .template-edit {
+    width: 100%;
     min-height: 100vh;
+    overflow: hidden;
+    background-color: #FFFFFF;
+  }
+
+  .cancel-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 108rpx;
+    height: 58rpx;
+    color: #333333;
+    font-size: 25rpx;
+    border: 1rpx solid #E7E7E7;
+    border-radius: 100rpx;
     background-color: #F6F6F6;
   }
 
-  .tn-custom-nav-bar__back {
-    .icon {
-      font-size: 38rpx;
+  .edit-mode {
+    width: 100%;
+    height: 100%;
+
+    &__item {
+      position: relative;
+      padding: 0 24rpx;
+      color: #222222;
+      font-size: 30rpx;
+      font-weight: bold;
+
+      &--active::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: -10rpx;
+        width: 34rpx;
+        height: 6rpx;
+        border-radius: 6rpx;
+        background-color: #000000;
+        transform: translateX(-50%);
+      }
     }
   }
 
-  .publish-btn {
-    padding: 10rpx 30rpx;
+  .edit-scroll {
+    width: 100%;
+    height: 100vh;
+  }
+
+  .edit-content {
+    box-sizing: border-box;
+    padding-left: 32rpx;
+    padding-right: 32rpx;
+  }
+
+  .upload-section,
+  .tag-section,
+  .option-section {
+    margin-top: 28rpx;
+  }
+
+  .section-title {
+    margin-bottom: 24rpx;
+    color: #292929;
+    font-size: 28rpx;
+    font-weight: bold;
+
+    &__icon {
+      padding-right: 12rpx;
+      font-size: 32rpx;
+    }
+
+    &__extra {
+      color: #B1B1B1;
+      font-size: 24rpx;
+      font-weight: normal;
+    }
+  }
+
+  .title-field {
+    position: relative;
+    margin-top: 34rpx;
+    padding: 0 76rpx 20rpx 0;
+    border-bottom: 1rpx solid #EFEFEF;
+  }
+
+  .title-input {
+    width: 100%;
+    height: 62rpx;
+    color: #222222;
+    font-size: 34rpx;
+    font-weight: bold;
+    line-height: 62rpx;
+  }
+
+  .title-count {
+    position: absolute;
+    right: 0;
+    bottom: 34rpx;
+    color: #C1C1C1;
+    font-size: 22rpx;
+  }
+
+  .edit-textarea {
+    position: relative;
+    min-height: 300rpx;
+    padding: 28rpx 0 50rpx;
+    border-bottom: 1rpx solid #EFEFEF;
+
+    textarea {
+      width: 100%;
+      height: 250rpx;
+      color: #333333;
+      font-size: 29rpx;
+      line-height: 1.7;
+    }
+
+    .textarea-count {
+      position: absolute;
+      right: 0;
+      bottom: 18rpx;
+      color: #B8B8B8;
+      font-size: 23rpx;
+    }
+  }
+
+  .input-placeholder {
+    color: #AAA8B7;
+    font-weight: normal;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 8rpx;
+  }
+
+  .tag-item {
+    display: flex;
+    align-items: center;
+    margin: 0 16rpx 16rpx 0;
+    padding: 10rpx 18rpx;
+    color: #333333;
+    font-size: 24rpx;
+    border-radius: 28rpx;
+    background-color: #F1F1F1;
+
+    &__close {
+      padding-left: 10rpx;
+      color: #999999;
+      font-size: 20rpx;
+    }
+  }
+
+  .tag-input-wrap {
+    padding-bottom: 26rpx;
+    border-bottom: 1rpx solid #EFEFEF;
+  }
+
+  .tag-input {
+    flex: 1;
+    height: 66rpx;
+    padding: 0 26rpx;
+    color: #333333;
+    font-size: 26rpx;
+    border-radius: 34rpx;
+    background-color: #F7F7F7;
+  }
+
+  .tag-add-btn {
+    width: 66rpx;
+    height: 66rpx;
+    margin-left: 16rpx;
+    color: #FFFFFF;
+    font-size: 26rpx;
+    line-height: 66rpx;
+    text-align: center;
+    border-radius: 50%;
     background-color: #000000;
-    border-radius: 30rpx;
-    &.disabled {
-      background-color: #CCCCCC;
+  }
+
+  .option-section {
+    padding: 0 24rpx;
+    border-radius: 22rpx;
+    background-color: #F8F8F8;
+  }
+
+  .option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 92rpx;
+    color: #383838;
+    font-size: 27rpx;
+
+    &--last {
+      margin-top: 10rpx;
+      border-top: 1rpx solid #E9E9E9;
     }
-  }
 
-  .publish-wrap {
-    padding: 20rpx 0;
-  }
+    &__left {
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+    }
 
-  .form-card {
-    margin: 0 30rpx;
-    padding: 30rpx;
-    border-radius: 20rpx;
-  }
+    &__icon {
+      padding-right: 12rpx;
+      font-size: 32rpx;
+    }
 
-  .form-row {
-    padding: 20rpx 0;
+    &__hint {
+      color: #999999;
+      font-size: 24rpx;
+    }
   }
 
   .circle-select {
     width: 100%;
+    padding-bottom: 22rpx;
     white-space: nowrap;
-    margin-top: 18rpx;
   }
 
   .circle-select__inner {
@@ -376,85 +556,75 @@
   .circle-option {
     flex-shrink: 0;
     margin-right: 14rpx;
-    padding: 12rpx 26rpx;
-    border-radius: 30rpx;
-    background-color: #F2F2F2;
+    padding: 12rpx 24rpx;
     color: #666666;
+    font-size: 24rpx;
+    border: 1rpx solid #E4E4E4;
+    border-radius: 32rpx;
+    background-color: #FFFFFF;
+
+    &--active {
+      color: #FFFFFF;
+      border-color: #000000;
+      background-color: #000000;
+    }
+  }
+
+  .empty-circle {
+    padding-bottom: 24rpx;
+    color: #AAAAAA;
     font-size: 24rpx;
   }
 
-  .circle-option.active {
-    background-color: #000000;
-    color: #FFFFFF;
+  .footer-placeholder {
+    height: calc(190rpx + constant(safe-area-inset-bottom));
+    height: calc(190rpx + env(safe-area-inset-bottom));
   }
 
-  .form-divider {
-    height: 1rpx;
-    background-color: #EFEFEF;
-  }
-
-  .title-input {
-    width: 100%;
-    font-size: 34rpx;
-    font-weight: bold;
-    height: 60rpx;
-    line-height: 60rpx;
-  }
-
-  .content-input {
-    width: 100%;
-    min-height: 300rpx;
-    font-size: 30rpx;
-    line-height: 1.7;
-    color: #333333;
-  }
-
-  .input-placeholder {
-    color: #BBBBBB;
-  }
-
-  .row-label {
+  .publish-footer {
+    position: fixed;
+    z-index: 1000;
+    left: 30rpx;
+    right: 30rpx;
+    bottom: calc(24rpx + constant(safe-area-inset-bottom));
+    bottom: calc(24rpx + env(safe-area-inset-bottom));
     display: flex;
-    flex-direction: row;
     align-items: center;
+    box-sizing: border-box;
+    min-height: 106rpx;
+    padding: 12rpx 14rpx 12rpx 26rpx;
+    border-radius: 60rpx;
+    background-color: #FFFFFF;
+    box-shadow: 0 4rpx 32rpx rgba(0, 0, 0, 0.11);
   }
 
-  /* 标签 */
-  .tag-list {
-    .tag-item {
-      display: flex;
-      align-items: center;
-      padding: 8rpx 20rpx;
-      margin-right: 16rpx;
-      margin-bottom: 16rpx;
-      background-color: #F2F2F2;
-      color: #333333;
-      border-radius: 20rpx;
+  .publish-tip {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    color: #A0A0A0;
+    font-size: 21rpx;
+
+    .tn-icon-tip {
+      padding-right: 10rpx;
+      font-size: 32rpx;
     }
   }
 
-  .tag-input-wrap {
-    .tag-input {
-      flex: 1;
-      height: 64rpx;
-      background-color: #F6F6F6;
-      border-radius: 32rpx;
-      padding: 0 30rpx;
-      font-size: 28rpx;
-    }
-    .tag-add-btn {
-      margin-left: 16rpx;
-      width: 64rpx;
-      height: 64rpx;
-      line-height: 64rpx;
-      text-align: center;
-      background-color: #000000;
-      color: #FFFFFF;
-      border-radius: 50%;
-    }
-  }
+  .publish-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 240rpx;
+    height: 78rpx;
+    color: #FFFFFF;
+    font-size: 29rpx;
+    font-weight: bold;
+    border-radius: 42rpx;
+    background-color: #000000;
 
-  .word-count {
-    margin-top: 20rpx;
+    &--disabled {
+      background-color: #BDBDBD;
+    }
   }
 </style>

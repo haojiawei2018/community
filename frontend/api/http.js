@@ -26,6 +26,24 @@ function showError(message, config) {
   uni.showToast({ title: message, icon: 'none' })
 }
 
+function getErrorMessage(value) {
+  if (!value) return ''
+  const data = value.data && typeof value.data === 'object' ? value.data : value
+  return data.message || data.msg || value.message || value.msg || ''
+}
+
+function isTenantTokenMismatch(value) {
+  return getErrorMessage(value).indexOf('访问令牌不属于当前租户') !== -1
+}
+
+function handleInvalidTenantSession(config) {
+  session.clearAuthSession()
+  showError('社区登录信息已变更，请重新登录', config)
+  if (!config || !config.custom || config.custom.authRedirect !== false) {
+    setTimeout(redirectToLogin, 300)
+  }
+}
+
 // 请求拦截器：统一携带租户编码和标准 Bearer Token
 http.interceptors.request.use((config) => {
   config.header = config.header || {}
@@ -52,12 +70,21 @@ http.interceptors.response.use(
       session.clearAuthSession()
       if (!responseConfig.custom || responseConfig.custom.authRedirect !== false) redirectToLogin()
     }
+    if (isTenantTokenMismatch(res)) {
+      handleInvalidTenantSession(responseConfig)
+      return Promise.reject(res)
+    }
     showError(res.message || '请求失败', responseConfig)
     return Promise.reject(res)
   },
   (error) => {
     // 网络错误按 statusCode 给中文提示
     const statusCode = error.statusCode
+    const responseData = error.data || (error.response && error.response.data) || error
+    if (statusCode === 403 && isTenantTokenMismatch(responseData)) {
+      handleInvalidTenantSession(error.config)
+      return Promise.reject(error)
+    }
     let msg = '网络异常，请稍后重试'
     if (statusCode === 401) {
       msg = '登录已过期，请重新登录'

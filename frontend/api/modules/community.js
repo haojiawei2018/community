@@ -34,6 +34,22 @@ export default {
     return http.get('/api/v1/circles')
   },
 
+  getMemberProfile(memberId) {
+    return http.get(`/api/v1/members/${memberId}`)
+  },
+
+  async getMemberPosts(memberId, params = {}) {
+    const { page = 1, pageSize = 10 } = params
+    const data = await http.get(`/api/v1/members/${memberId}/posts`, { params })
+    return normalizePage(data, page, pageSize)
+  },
+
+  /** 获取当前进行中的话题活动 */
+  getTopicList() {
+    if (useForumMock()) return Promise.resolve([])
+    return http.get('/api/v1/topics')
+  },
+
   /* ===================== 帖子相关 ===================== */
 
   /**
@@ -42,11 +58,12 @@ export default {
    * @param {Object} params - 查询参数
    * @param {number} [params.page=1] - 当前页码
    * @param {number} [params.pageSize=10] - 每页条数
+   * @param {'LATEST'|'HOT'} [params.sort='LATEST'] - 最新或热门排序
    * @returns {Promise<{ rows: Array, total: number, page: number, pageSize: number }>}
    */
   async getPostList(params = {}) {
     const { page = 1, pageSize = 10 } = params
-    if (useForumMock()) return mock.getPostList({ page, pageSize })
+    if (useForumMock()) return mock.getPostList(params)
     const data = await http.get('/api/v1/posts', { params })
     return normalizePage(data, page, pageSize)
   },
@@ -129,6 +146,14 @@ export default {
   unlikePost(postId) {
     if (useForumMock()) return mock.setPostLiked(postId, false)
     return http.delete(`/api/v1/posts/${postId}/like`)
+  },
+
+  reportPost(postId, data = {}) {
+    return http.post(`/api/v1/posts/${postId}/reports`, data)
+  },
+
+  blockMember(memberId) {
+    return http.put(`/api/v1/members/${memberId}/block`)
   },
 
   /* ===================== 兼容旧接口（瀑布流/轮播图） ===================== */

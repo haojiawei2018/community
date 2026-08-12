@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class SingleCommunityProperties {
     private Long id = 1L;
     private String code = "default";
-    private String name = "开源游戏社区";
+    private String name = "开源社区";
     private String logoUrl;
+    private String defaultAvatarUrl = "https://itzxiu.oss-cn-chengdu.aliyuncs.com/images/2026/08/12/3abaa404cc3a4adaab49318f0645d146.png";
 }

@@ -6,6 +6,7 @@ import org.hopeframework.biz.api.common.security.AccessTokenService;
 import org.hopeframework.biz.api.common.security.AuthContext;
 import org.hopeframework.biz.api.common.security.AuthPrincipal;
 import org.hopeframework.biz.api.common.tenant.TenantContext;
+import org.hopeframework.biz.api.common.tenant.SingleCommunityProperties;
 import org.hopeframework.biz.api.entity.input.auth.LoginRequest;
 import org.hopeframework.biz.api.entity.input.auth.LogoutRequest;
 import org.hopeframework.biz.api.entity.input.auth.RefreshRequest;
@@ -58,6 +59,7 @@ public class AuthServiceImpl implements IAuthService {
     private final TenantMemberRoleMapper memberRoleMapper;
     private final MemberAuthorityMapper authorityMapper;
     private final AccessTokenService accessTokenService;
+    private final SingleCommunityProperties communityProperties;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -68,7 +70,8 @@ public class AuthServiceImpl implements IAuthService {
                            TenantRoleMapper roleMapper,
                            TenantMemberRoleMapper memberRoleMapper,
                            MemberAuthorityMapper authorityMapper,
-                           AccessTokenService accessTokenService) {
+                           AccessTokenService accessTokenService,
+                           SingleCommunityProperties communityProperties) {
         this.userMapper = userMapper;
         this.identityMapper = identityMapper;
         this.refreshTokenMapper = refreshTokenMapper;
@@ -77,6 +80,7 @@ public class AuthServiceImpl implements IAuthService {
         this.memberRoleMapper = memberRoleMapper;
         this.authorityMapper = authorityMapper;
         this.accessTokenService = accessTokenService;
+        this.communityProperties = communityProperties;
     }
 
     @Override
@@ -206,6 +210,7 @@ public class AuthServiceImpl implements IAuthService {
         member.setTenantId(TenantContext.requireTenantId());
         member.setUserId(user.getId());
         member.setDisplayName(displayName);
+        member.setAvatarUrl(communityProperties.getDefaultAvatarUrl());
         member.setStatus("ACTIVE");
         member.setJoinedAt(now);
         member.setLastActiveAt(now);
