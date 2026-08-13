@@ -19,4 +19,4 @@
 
 当前已接入社区初始化、注册登录、用户资料、圈子、活动、帖子信息流、帖子详情、发布与删除、评论、点赞、图片上传、举报屏蔽、消息、签到和用户主页。`forumApiEnabled` 默认开启，仅在后端不可用的视觉调试场景临时关闭。
 
-完整功能和小程序/H5/APP 差异见 [`../docs/features.md`](../docs/features.md)，数据库、OSS 和发行配置见 [`../docs/configuration.md`](../docs/configuration.md)。
+完整功能、小程序/H5/APP 差异和界面预览见 [`../README.md`](../README.md)，数据库、OSS 和发行配置见 [`../docs/configuration.md`](../docs/configuration.md)。
