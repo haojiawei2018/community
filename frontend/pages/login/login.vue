@@ -156,10 +156,13 @@
         // 是否明文显示密码
         showPassword: false,
         // 提交中
-        loading: false
+        loading: false,
+        // 从帖子互动进入登录页时，登录成功后返回原页面
+        returnAfterLogin: false
       }
     },
-    onLoad() {
+    onLoad(options = {}) {
+      this.returnAfterLogin = String(options.returnAfterLogin || '') === '1'
       this.loadCommunity()
     },
     methods: {
@@ -231,9 +234,13 @@
           }
           uni.showToast({ title: this.mode === 'login' ? '登录成功' : '注册成功', icon: 'success' })
           console.log('[login] 已写入标准登录会话:', JSON.stringify(res && res.user))
-          // 延迟跳转并切换到"我的"tab，确保刚登录用户能立刻看到自己的信息
+          // 帖子互动登录后返回原详情页；普通入口仍切换到“我的”。
           setTimeout(() => {
-            uni.reLaunch({ url: '/pages/index/index?tab=4' })
+            if (this.returnAfterLogin) {
+              uni.navigateBack({ delta: 1 })
+            } else {
+              uni.reLaunch({ url: '/pages/index/index?tab=4' })
+            }
           }, 800)
         } catch (err) {
           // 响应拦截器已统一提示 message，这里兜底确保一定有提示

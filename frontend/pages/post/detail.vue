@@ -144,6 +144,7 @@
 
 <script>
   import { community } from '@/api/index.js'
+  import session from '@/utils/session.js'
 
   // 日志前缀，便于在控制台过滤
   const LOG_TAG = '[PostDetail]'
@@ -178,7 +179,9 @@
         // 是否聚焦底部评论框
         commentFocus: false,
         // 评论提交中
-        submitting: false
+        submitting: false,
+        // 防止未登录时连续点击导致重复打开登录页
+        loginNavigating: false
       }
     },
     computed: {
@@ -225,7 +228,23 @@
         uni.reLaunch({ url: '/pages/index/index' })
       },
 
+      requireLogin() {
+        if (session.isAccessTokenUsable()) return true
+        if (this.loginNavigating) return false
+        this.loginNavigating = true
+        this.commentFocus = false
+        uni.showToast({ title: '请先登录', icon: 'none' })
+        setTimeout(() => {
+          uni.navigateTo({
+            url: '/pages/login/login?returnAfterLogin=1',
+            complete: () => { this.loginNavigating = false }
+          })
+        }, 300)
+        return false
+      },
+
       focusComment() {
+        if (!this.requireLogin()) return
         this.commentFocus = false
         this.$nextTick(() => {
           this.commentFocus = true
@@ -347,6 +366,7 @@
 
       // 点赞 / 取消点赞
       async handleLike() {
+        if (!this.requireLogin()) return
         console.log(LOG_TAG, '>>> 点击点赞, 当前状态 isLiked:', this.isLiked)
         const liked = this.isLiked
         const startTime = Date.now()
@@ -378,6 +398,7 @@
 
       // 提交评论
       async handleSubmitComment() {
+        if (!this.requireLogin()) return
         const content = this.commentText.trim()
         if (!content) {
           console.log(LOG_TAG, '评论内容为空，忽略提交')
