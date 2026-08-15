@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useSessionStore } from '@/stores/session'
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || ''
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://42.193.104.179:10003'
 export const publicClient = axios.create({ baseURL, timeout:15000 })
 export const apiClient = axios.create({ baseURL, timeout:15000 })
 

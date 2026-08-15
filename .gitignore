@@ -4,6 +4,8 @@ node_modules/
 # uni-app / HBuilderX build output
 unpackage/
 dist/
+release/
+*.zip
 
 # IDE and editor-local files
 .hbuilderx/
@@ -25,3 +27,17 @@ Desktop.ini
 .env
 .env.*
 !.env.example
+
+# Backend local secrets and runtime data
+backend/**/src/main/resources/application-local.yml
+backend/**/src/main/resources/application-secret.yml
+backend/**/data/
+backend/**/db-data/
+backend/**/uploads/
+backend/**/oss-data/
+backend/**/storage/
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.bak

@@ -9,8 +9,10 @@ pnpm build
 ```
 
 - 网站：`http://localhost:3000`
-- 接口代理：`http://localhost:10003`
+- 接口地址：`http://42.193.104.179:10003`
 - 默认开发账号：`merchant_admin`
 - 默认开发密码：`Merchant@123456`
 
-网页不负责启动 Java 服务。如果后端端口不同，可通过 `VITE_API_TARGET` 修改代理目标。
+网页不负责启动 Java 服务。开发代理和生产包默认直接连接 `http://42.193.104.179:10003`；开发代理可通过 `VITE_API_TARGET` 覆盖，生产接口地址可通过 `VITE_API_BASE_URL` 覆盖。后端需允许后台网站来源的跨域请求。
+
+生产构建固定部署到 `/admin/` 子目录，例如 `http://42.193.104.179/admin/`。

@@ -55,8 +55,17 @@ public class AliyunOssImageStorageServiceTest {
         properties.setEndpoint("");
         MockMultipartFile file = new MockMultipartFile("file", "image.png", "image/png", new byte[]{1});
         HopeException exception = captureException(file);
-        assertEquals(500, exception.getCode());
-        assertEquals("阿里云 OSS 配置不完整", exception.getMessage());
+        assertEquals(503, exception.getCode());
+        assertEquals("未配置阿里云 OSS 信息，请配置 Endpoint、AccessKey 和 Bucket", exception.getMessage());
+    }
+
+    @Test
+    public void rejectsUnresolvedConfigurationPlaceholderBeforeUpload() {
+        properties.setEndpoint("${ALIYUN_OSS_ENDPOINT}");
+        MockMultipartFile file = new MockMultipartFile("file", "image.png", "image/png", new byte[]{1});
+        HopeException exception = captureException(file);
+        assertEquals(503, exception.getCode());
+        assertEquals("未配置阿里云 OSS 信息，请配置 Endpoint、AccessKey 和 Bucket", exception.getMessage());
     }
 
     private HopeException captureException(MockMultipartFile file) {

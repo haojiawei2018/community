@@ -1,0 +1,10 @@
+# 将路径替换为服务器实际站点根目录；该目录下应存在 h5/index.html。
+root /www/wwwroot/community;
+
+location = /h5 {
+    return 301 /h5/;
+}
+
+location /h5/ {
+    try_files $uri $uri/ /h5/index.html;
+}

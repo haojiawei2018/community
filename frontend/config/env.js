@@ -1,21 +1,19 @@
 /**
  * 环境配置
  * 通过 process.env.NODE_ENV 区分开发环境与生产环境
- * - development: 本地开发，启用 mock，后端地址指向本地
- * - production:  线上生产，关闭 mock，后端地址指向正式域名
+ * - development / production 均连接当前部署的社区服务
  */
 
 // 当前环境字符串：development 或 production
 const env = process.env.NODE_ENV || 'development'
-
-// 是否为开发环境
-const isDev = env === 'development'
+// 后端已放行 H5 来源和预检请求，所有前端统一直连当前部署的社区服务
+const baseURL = 'http://42.193.104.179:10003'
 
 export default {
   // 当前环境字符串
   env,
   // 后端接口基础地址（Hope Framework）
-  baseURL: isDev ? 'http://localhost:10003' : 'https://api.your-domain.com',
+  baseURL,
   // SaaS 版用于解析租户；开源单社区版会安全忽略并使用后端固定社区配置
   communityCode: 'default',
   // 是否启用 mock 静态数据

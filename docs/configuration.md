@@ -65,25 +65,25 @@ $env:COMMUNITY_ACCESS_TOKEN_SECRET='请替换为随机长密钥'
 
 编辑 `frontend/config/env.js`：
 
-- `baseURL`：后端 HTTPS 地址；手机和小程序不能使用电脑的 `localhost`
+- `baseURL`：当前测试服务器为 `http://42.193.104.179:10003`；正式发布应替换为后端 HTTPS 域名
 - `communityCode`：开源单社区版保持 `default`
 - `useMock`：正常联调保持 `false`
 - `forumApiEnabled`：正常运行保持 `true`
 
 微信小程序还需在 `frontend/manifest.json` 配置 AppID，并在微信公众平台配置 request/uploadFile/downloadFile 合法域名。正式域名必须使用 HTTPS。
 
-H5 建议由 Nginx 托管并把 `/api` 反向代理至后端，避免跨域。APP 发行时在 HBuilderX 中配置 Android 包名、iOS Bundle ID、签名证书、图标、启动图和隐私权限。
+H5 部署在 `/h5/`，由 Nginx 托管静态资源，并直接请求 `http://42.193.104.179:10003`；后端需放行 H5 来源和 CORS 预检，静态站点配置见 `frontend/deploy/nginx-h5.conf.example`。APP 发行时在 HBuilderX 中配置 Android 包名、iOS Bundle ID、签名证书、图标、启动图和隐私权限。
 
 ## 6. 管理后台配置
 
-开发环境通过 `admin/vite.config.ts` 的代理连接后端，默认目标为 `http://localhost:10003`，可用 `VITE_API_TARGET` 覆盖：
+开发环境通过 `admin/vite.config.ts` 的代理连接后端，默认目标为 `http://42.193.104.179:10003`，可用 `VITE_API_TARGET` 覆盖：
 
 ```powershell
-$env:VITE_API_TARGET='http://localhost:10003'
+$env:VITE_API_TARGET='http://42.193.104.179:10003'
 pnpm dev
 ```
 
-生产环境应由 Nginx 将后台 `/api` 反向代理到后端，并启用 HTTPS。
+生产包默认直接请求 `http://42.193.104.179:10003`，可在构建前通过 `VITE_API_BASE_URL` 覆盖。正式环境建议由 Nginx 将后台 `/api` 反向代理到后端，并启用 HTTPS。
 
 ## 7. 启动与检查
 
@@ -100,4 +100,3 @@ pnpm build
 ```
 
 用户端使用 HBuilderX 打开 `frontend`，分别运行或发行到 H5、微信小程序、Android、iOS。
-

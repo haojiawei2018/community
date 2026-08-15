@@ -51,7 +51,7 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "wx7ddb7430cfbeb86e",
+        "appid" : null,
         "setting" : {
             "urlCheck" : false
         },
@@ -73,9 +73,13 @@
     "vueVersion" : "2",
     "h5" : {
         "template" : "",
+        "router" : {
+            "mode" : "hash",
+            "base" : "/h5/"
+        },
         "devServer" : {
             "https" : false
         },
-        "title" : ""
+        "title" : "开源论坛社区"
     }
 }

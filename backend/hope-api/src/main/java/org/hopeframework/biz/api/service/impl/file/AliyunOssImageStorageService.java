@@ -2,6 +2,8 @@ package org.hopeframework.biz.api.service.impl.file;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.ClientException;
+import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.ObjectMetadata;
 import org.hopeframework.biz.api.config.oss.AliyunOssProperties;
 import org.hopeframework.biz.api.entity.output.file.ImageUploadResponse;
@@ -44,25 +46,54 @@ public class AliyunOssImageStorageService implements IImageStorageService {
         metadata.setContentLength(file.getSize());
         metadata.setContentType(file.getContentType());
 
-        OSS ossClient = new OSSClientBuilder().build(
-                properties.getEndpoint(), properties.getAccessKeyId(), properties.getAccessKeySecret());
+        OSS ossClient = null;
         try (InputStream inputStream = file.getInputStream()) {
+            ossClient = new OSSClientBuilder().build(
+                    properties.getEndpoint(), properties.getAccessKeyId(), properties.getAccessKeySecret());
             ossClient.putObject(properties.getBucketName(), objectName, inputStream, metadata);
-        } catch (IOException | RuntimeException ex) {
+        } catch (OSSException ex) {
+            if (isConfigurationError(ex.getErrorCode())) {
+                throw new HopeException(HttpStatus.SERVICE_UNAVAILABLE.value(),
+                        "阿里云 OSS 配置无效，请检查 AccessKey、Bucket 和访问权限", ex);
+            }
+            throw new HopeException(HttpStatus.BAD_GATEWAY.value(),
+                    "阿里云 OSS 上传失败：" + ex.getErrorCode(), ex);
+        } catch (ClientException ex) {
+            throw new HopeException(HttpStatus.SERVICE_UNAVAILABLE.value(),
+                    "无法连接阿里云 OSS，请检查 Endpoint 和服务器网络", ex);
+        } catch (IOException ex) {
             throw new HopeException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "图片上传到阿里云 OSS 失败", ex);
         } finally {
-            ossClient.shutdown();
+            if (ossClient != null) {
+                ossClient.shutdown();
+            }
         }
         return new ImageUploadResponse(buildPublicUrl(objectName), objectName, originalName, file.getSize());
     }
 
     private void validateConfiguration() {
-        if (!StringUtils.hasText(properties.getEndpoint())
-                || !StringUtils.hasText(properties.getAccessKeyId())
-                || !StringUtils.hasText(properties.getAccessKeySecret())
-                || !StringUtils.hasText(properties.getBucketName())) {
-            throw new HopeException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "阿里云 OSS 配置不完整");
+        if (isMissing(properties.getEndpoint())
+                || isMissing(properties.getAccessKeyId())
+                || isMissing(properties.getAccessKeySecret())
+                || isMissing(properties.getBucketName())) {
+            throw new HopeException(HttpStatus.SERVICE_UNAVAILABLE.value(),
+                    "未配置阿里云 OSS 信息，请配置 Endpoint、AccessKey 和 Bucket");
         }
+    }
+
+    private boolean isMissing(String value) {
+        if (!StringUtils.hasText(value)) {
+            return true;
+        }
+        String trimmed = value.trim();
+        return trimmed.startsWith("${") && trimmed.endsWith("}");
+    }
+
+    private boolean isConfigurationError(String errorCode) {
+        return "InvalidAccessKeyId".equals(errorCode)
+                || "SignatureDoesNotMatch".equals(errorCode)
+                || "AccessDenied".equals(errorCode)
+                || "NoSuchBucket".equals(errorCode);
     }
 
     private void validateFile(MultipartFile file) {
