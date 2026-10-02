@@ -13,6 +13,11 @@ spring:
       max-file-size: 100MB
       max-request-size: 1000MB
 
+# 图片存储提供商：aliyun 或 tencent。腾讯云密钥配置完成后将环境变量改为 tencent。
+storage:
+  image:
+    provider: '${IMAGE_STORAGE_PROVIDER:aliyun}'
+
 # MyBatis-Plus 配置
 mybatis-plus:
   mapper-locations: classpath*:/xml/*.xml
@@ -24,6 +29,17 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     cache-enabled: false
+
+# AI铁盒专用签名密钥（生产环境使用独立环境变量）
+ironbox:
+  cos:
+    secret-id: '${IRONBOX_COS_SECRET_ID:}'
+    secret-key: '${IRONBOX_COS_SECRET_KEY:}'
+    region: '${IRONBOX_COS_REGION:ap-beijing}'
+    bucket-name: '${IRONBOX_COS_BUCKET_NAME:ironbox-1318651650}'
+    public-domain: '${IRONBOX_COS_PUBLIC_DOMAIN:}'
+  security:
+    access-token-secret: '${IRONBOX_ACCESS_TOKEN_SECRET}'
 
 # Swagger 文档配置
 swagger:
@@ -41,5 +57,76 @@ community:
   logo-url: '${COMMUNITY_LOGO_URL:}'
   default-avatar-url: '${COMMUNITY_DEFAULT_AVATAR_URL:}'
   security:
-    access-token-secret: '${COMMUNITY_ACCESS_TOKEN_SECRET:dev-only-change-this-access-token-secret}'
+    access-token-secret: '${COMMUNITY_ACCESS_TOKEN_SECRET}'
     access-token-seconds: ${COMMUNITY_ACCESS_TOKEN_SECONDS:7200}
+
+# 闪卡独立APP登录配置。多个 Apple Bundle ID / Services ID 使用英文逗号分隔。
+flashcard:
+  admin:
+    username: '${FLASHCARD_ADMIN_USERNAME:admin}'
+    password: '${FLASHCARD_ADMIN_PASSWORD}'
+  apple:
+    client-ids: '${FLASHCARD_APPLE_CLIENT_IDS:}'
+  sms:
+    access-key-id: '${FLASHCARD_SMS_ACCESS_KEY_ID:}'
+    access-key-secret: '${FLASHCARD_SMS_ACCESS_KEY_SECRET:}'
+    sign-name: '${FLASHCARD_SMS_SIGN_NAME:}'
+    template-code: '${FLASHCARD_SMS_TEMPLATE_CODE:}'
+
+# 预约小程序微信登录。密钥只允许通过环境变量配置，禁止提交到代码仓库。
+booking:
+  admin:
+    username: '${BOOKING_ADMIN_USERNAME:admin}'
+    password: '${BOOKING_ADMIN_PASSWORD}'
+  wechat:
+    app-id: '${BOOKING_WECHAT_APP_ID:}'
+    app-secret: '${BOOKING_WECHAT_APP_SECRET:}'
+  wechat-pay:
+    app-id: '${BOOKING_WECHAT_APP_ID:}'
+    merchant-id: '${BOOKING_WECHAT_PAY_MCH_ID:}'
+    api-v2-key: '${BOOKING_WECHAT_PAY_API_V2_KEY:}'
+    notify-url: '${BOOKING_WECHAT_PAY_NOTIFY_URL:}'
+    unified-order-url: 'https://api.mch.weixin.qq.com/pay/unifiedorder'
+
+# 宠物零食小程序独立微信登录配置。密钥只允许通过环境变量配置。
+pet-snack:
+  cos:
+    secret-id: '${PET_SNACK_COS_SECRET_ID:}'
+    secret-key: '${PET_SNACK_COS_SECRET_KEY:}'
+    region: '${PET_SNACK_COS_REGION:}'
+    bucket-name: '${PET_SNACK_COS_BUCKET_NAME:}'
+    public-domain: '${PET_SNACK_COS_PUBLIC_DOMAIN:}'
+    object-prefix: '${PET_SNACK_COS_OBJECT_PREFIX:pet-snack}'
+    max-image-size: '${PET_SNACK_COS_MAX_IMAGE_SIZE:10MB}'
+  admin:
+    username: '${PET_SNACK_ADMIN_USERNAME:admin}'
+    password: '${PET_SNACK_ADMIN_PASSWORD}'
+  security:
+    access-token-secret: '${PET_SNACK_ACCESS_TOKEN_SECRET}'
+  wechat:
+    app-id: '${PET_SNACK_WECHAT_APP_ID:}'
+    app-secret: '${PET_SNACK_WECHAT_APP_SECRET:}'
+  wechat-pay:
+    app-id: '${PET_SNACK_WECHAT_APP_ID:}'
+    merchant-id: '${PET_SNACK_WECHAT_PAY_MCH_ID:}'
+    api-v2-key: '${PET_SNACK_WECHAT_PAY_API_V2_KEY:}'
+    notify-url: '${PET_SNACK_WECHAT_PAY_NOTIFY_URL:}'
+    unified-order-url: 'https://api.mch.weixin.qq.com/pay/unifiedorder'
+
+# 小松的电视机独立永久 Token。签名密钥必须通过环境变量配置。
+xiaosong-tv:
+  update:
+    android:
+      wgt-version: '${XIAOSONG_TV_WGT_VERSION:}'
+      wgt-sha1: '${XIAOSONG_TV_WGT_SHA1:}'
+      wgt-url: '${XIAOSONG_TV_WGT_URL:http://161.189.5.95/xiaosong.wgt}'
+      min-apk-version-code: '${XIAOSONG_TV_WGT_MIN_APK_VERSION_CODE:104}'
+  security:
+    access-token-secret: '${XIAOSONG_TV_ACCESS_TOKEN_SECRET}'
+  sms:
+    # 优先使用小松短信专用密钥；未单独配置时复用服务器现有的阿里云密钥。
+    access-key-id: '${XIAOSONG_TV_SMS_ACCESS_KEY_ID:${ALIYUN_OSS_ACCESS_KEY_ID:}}'
+    access-key-secret: '${XIAOSONG_TV_SMS_ACCESS_KEY_SECRET:${ALIYUN_OSS_ACCESS_KEY_SECRET:}}'
+    region-id: '${XIAOSONG_TV_SMS_REGION_ID:default}'
+    sign-name: '${XIAOSONG_TV_SMS_SIGN_NAME:成都市斤为科技}'
+    template-code: '${XIAOSONG_TV_SMS_TEMPLATE_CODE:SMS_317060033}'

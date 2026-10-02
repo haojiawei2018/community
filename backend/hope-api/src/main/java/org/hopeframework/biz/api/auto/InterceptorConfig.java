@@ -7,6 +7,9 @@ import com.alibaba.fastjson.support.config.FastJsonConfig;
 import com.alibaba.fastjson.support.spring.FastJsonHttpMessageConverter;
 import org.hopeframework.biz.api.common.security.AccessTokenService;
 import org.hopeframework.biz.api.common.security.MemberSecurityService;
+import org.hopeframework.biz.api.common.security.PetSnackAccessTokenService;
+import org.hopeframework.biz.api.common.security.XiaosongTvAccessTokenService;
+import org.hopeframework.biz.api.common.security.IronBoxAccessTokenService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -28,10 +31,20 @@ public class InterceptorConfig implements WebMvcConfigurer {
 
     private final AccessTokenService accessTokenService;
     private final MemberSecurityService memberSecurityService;
+    private final PetSnackAccessTokenService petSnackAccessTokenService;
+    private final XiaosongTvAccessTokenService xiaosongTvAccessTokenService;
+    private final IronBoxAccessTokenService ironBoxAccessTokenService;
 
-    public InterceptorConfig(AccessTokenService accessTokenService, MemberSecurityService memberSecurityService) {
+    public InterceptorConfig(AccessTokenService accessTokenService,
+                             MemberSecurityService memberSecurityService,
+                             PetSnackAccessTokenService petSnackAccessTokenService,
+                             XiaosongTvAccessTokenService xiaosongTvAccessTokenService,
+                             IronBoxAccessTokenService ironBoxAccessTokenService) {
         this.accessTokenService = accessTokenService;
         this.memberSecurityService = memberSecurityService;
+        this.petSnackAccessTokenService = petSnackAccessTokenService;
+        this.xiaosongTvAccessTokenService = xiaosongTvAccessTokenService;
+        this.ironBoxAccessTokenService = ironBoxAccessTokenService;
     }
 
     @Override
@@ -65,7 +78,9 @@ public class InterceptorConfig implements WebMvcConfigurer {
 
     @Bean
     public AuthenticationInterceptor authenticationInterceptor() {
-        return new AuthenticationInterceptor(accessTokenService, memberSecurityService);
+        return new AuthenticationInterceptor(
+                accessTokenService, petSnackAccessTokenService, xiaosongTvAccessTokenService,
+                ironBoxAccessTokenService, memberSecurityService);
     }
 
     private HttpMessageConverter<?> fastConverter() {

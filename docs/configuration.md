@@ -47,6 +47,15 @@ $env:COMMUNITY_ACCESS_TOKEN_SECRET='请替换为随机长密钥'
 
 ## 4. 阿里云 OSS
 
+新增业务的管理员密码和 Token 签名密钥也必须通过环境变量或本地私密配置提供，仓库不包含可用默认密码或签名密钥：
+
+- 管理后台：`BOOKING_ADMIN_PASSWORD`、`FLASHCARD_ADMIN_PASSWORD`、`PET_SNACK_ADMIN_PASSWORD`。
+- Token 签名：`COMMUNITY_ACCESS_TOKEN_SECRET`、`IRONBOX_ACCESS_TOKEN_SECRET`、`PET_SNACK_ACCESS_TOKEN_SECRET`、`XIAOSONG_TV_ACCESS_TOKEN_SECRET`。
+- 微信支付：`BOOKING_WECHAT_PAY_API_V2_KEY`、`PET_SNACK_WECHAT_PAY_API_V2_KEY`。
+- 图片上传：按业务设置 `ALIYUN_OSS_ACCESS_KEY_ID` / `ALIYUN_OSS_ACCESS_KEY_SECRET`，或对应的 `*_COS_SECRET_ID` / `*_COS_SECRET_KEY`。
+
+服务器密码、私钥、支付证书和 `.env` 文件仅在本地或服务器保存。启动所有后端模块前须提供上述管理员密码和 Token 签名配置。
+
 图片上传接口为 `POST /api/v1/files/images`。需要创建 OSS Bucket，并配置 Bucket 跨域规则、读写权限或自定义 CDN 域名。
 
 | 环境变量 | 说明 |

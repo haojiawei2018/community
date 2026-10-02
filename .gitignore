@@ -41,3 +41,16 @@ backend/**/storage/
 *.sqlite3
 *.dump
 *.bak
+
+# Signing certificates, payment keys and deployment credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.cnf
+credentials*.json
+secrets*.json
+backend/**/certs/
+backend/**/secrets/

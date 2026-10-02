@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.hopeframework.biz.api.mapper.petsnack.PetSnackMapper">
+
+    <sql id="productSummaryColumns">
+        p.id AS id,
+        p.category_id AS categoryId,
+        p.product_name AS name,
+        p.cover_url AS coverUrl,
+        p.sale_price AS salePriceYuan,
+        p.market_price AS marketPriceYuan,
+        p.sales_count AS salesCount,
+        p.hot AS hot,
+        p.new_product AS newProduct,
+        COALESCE((SELECT SUM(s.stock) FROM pet_snack_product_sku s
+                  WHERE s.product_id = p.id AND s.status = 'ACTIVE' AND s.deleted = 0), 0) AS stock
+    </sql>
+
+    <select id="selectStore" resultType="java.util.LinkedHashMap">
+        SELECT id, store_name AS name, logo_url AS logoUrl, description,
+               service_tags AS serviceTagsJson, service_phone AS servicePhone
+        FROM pet_snack_store
+        WHERE status = 'ACTIVE' AND deleted = 0
+        ORDER BY sort_order, id
+        LIMIT 1
+    </select>
+
+    <select id="selectBanners" resultType="java.util.LinkedHashMap">
+        SELECT id, title, subtitle, image_url AS imageUrl,
+               link_type AS linkType, link_value AS linkValue
+        FROM pet_snack_banner
+        WHERE status = 'ACTIVE' AND deleted = 0
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectCategories" resultType="java.util.LinkedHashMap">
+        SELECT id, category_name AS name, icon_url AS iconUrl, sort_order AS sortOrder
+        FROM pet_snack_category
+        WHERE status = 'ACTIVE' AND deleted = 0
+        ORDER BY sort_order, id
+    </select>
+
+    <sql id="productWhere">
+        p.status = 'ACTIVE' AND p.deleted = 0
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND p.product_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="tag == 'HOT'">
+            AND p.hot = 1
+        </if>
+        <if test="tag == 'NEW'">
+            AND p.new_product = 1
+        </if>
+    </sql>
+
+    <select id="selectProducts" resultType="java.util.LinkedHashMap">
+        SELECT <include refid="productSummaryColumns"/>
+        FROM pet_snack_product p
+        WHERE <include refid="productWhere"/>
+        ORDER BY p.sort_order, p.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countProducts" resultType="long">
+        SELECT COUNT(1)
+        FROM pet_snack_product p
+        WHERE <include refid="productWhere"/>
+    </select>
+
+    <select id="selectProduct" resultType="java.util.LinkedHashMap">
+        SELECT p.id, p.category_id AS categoryId, p.product_name AS name,
+               p.cover_url AS coverUrl, p.gallery_urls AS galleryUrlsJson,
+               p.description, p.purchase_notice AS purchaseNotice,
+               p.sale_price AS salePriceYuan, p.market_price AS marketPriceYuan,
+               p.sales_count AS salesCount, p.hot, p.new_product AS newProduct
+        FROM pet_snack_product p
+        WHERE p.id = #{productId} AND p.status = 'ACTIVE' AND p.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectProductSkus" resultType="java.util.LinkedHashMap">
+        SELECT id, product_id AS productId, sku_name AS skuName,
+               sale_price AS salePriceYuan, market_price AS marketPriceYuan, stock
+        FROM pet_snack_product_sku
+        WHERE product_id = #{productId} AND status = 'ACTIVE' AND deleted = 0
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectSkuForOrder" resultType="java.util.LinkedHashMap">
+        SELECT s.id AS skuId, s.product_id AS productId, s.sku_name AS skuName,
+               s.sale_price AS salePriceYuan, s.stock,
+               p.product_name AS productName, p.cover_url AS coverUrl
+        FROM pet_snack_product_sku s
+        INNER JOIN pet_snack_product p ON p.id = s.product_id
+        WHERE s.id = #{skuId} AND s.status = 'ACTIVE' AND s.deleted = 0
+          AND p.status = 'ACTIVE' AND p.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectUserByWechat" resultType="java.util.LinkedHashMap">
+        SELECT id, app_id AS appId, openid, unionid, nickname,
+               avatar_url AS avatarUrl, status, last_login_at AS lastLoginAt
+        FROM pet_snack_user
+        WHERE app_id = #{appId} AND openid = #{openid} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectUserById" resultType="java.util.LinkedHashMap">
+        SELECT id, app_id AS appId, openid, unionid, nickname, avatar_url AS avatarUrl, status,
+               last_login_at AS lastLoginAt, created_at AS createdAt
+        FROM pet_snack_user
+        WHERE id = #{userId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insertUser" useGeneratedKeys="true" keyProperty="user.id">
+        INSERT INTO pet_snack_user
+            (app_id, openid, unionid, nickname, avatar_url, status,
+             last_login_ip, last_login_at, created_at, updated_at, deleted)
+        VALUES
+            (#{user.appId}, #{user.openid}, #{user.unionid}, #{user.nickname}, NULL, 'ACTIVE',
+             #{user.clientIp}, NOW(), NOW(), NOW(), 0)
+    </insert>
+
+    <update id="updateUserLogin">
+        UPDATE pet_snack_user
+        SET unionid = COALESCE(NULLIF(#{unionid}, ''), unionid),
+            last_login_ip = #{clientIp}, last_login_at = NOW(), updated_at = NOW()
+        WHERE id = #{userId} AND deleted = 0
+    </update>
+
+    <update id="updateUserProfile">
+        UPDATE pet_snack_user
+        SET nickname = #{nickname}, avatar_url = #{avatarUrl}, updated_at = NOW()
+        WHERE id = #{userId} AND status = 'ACTIVE' AND deleted = 0
+    </update>
+
+    <update id="updateUserAvatar">
+        UPDATE pet_snack_user
+        SET avatar_url = #{avatarUrl}, updated_at = NOW()
+        WHERE id = #{userId} AND status = 'ACTIVE' AND deleted = 0
+    </update>
+
+    <select id="selectAddresses" resultType="java.util.LinkedHashMap">
+        SELECT id, receiver_name AS receiverName, receiver_phone AS receiverPhone,
+               province, city, district, detail_address AS detailAddress,
+               postal_code AS postalCode, is_default AS isDefault
+        FROM pet_snack_address
+        WHERE user_id = #{userId} AND deleted = 0
+        ORDER BY is_default DESC, updated_at DESC, id DESC
+    </select>
+
+    <select id="selectAddress" resultType="java.util.LinkedHashMap">
+        SELECT id, user_id AS userId, receiver_name AS receiverName,
+               receiver_phone AS receiverPhone, province, city, district,
+               detail_address AS detailAddress, postal_code AS postalCode,
+               is_default AS isDefault
+        FROM pet_snack_address
+        WHERE id = #{addressId} AND user_id = #{userId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="countAddresses" resultType="int">
+        SELECT COUNT(1) FROM pet_snack_address WHERE user_id = #{userId} AND deleted = 0
+    </select>
+
+    <update id="clearDefaultAddresses">
+        UPDATE pet_snack_address SET is_default = 0, updated_at = NOW()
+        WHERE user_id = #{userId} AND deleted = 0
+    </update>
+
+    <insert id="insertAddress" useGeneratedKeys="true" keyProperty="address.id">
+        INSERT INTO pet_snack_address
+            (user_id, receiver_name, receiver_phone, province, city, district,
+             detail_address, postal_code, is_default, created_at, updated_at, deleted)
+        VALUES
+            (#{address.userId}, #{address.receiverName}, #{address.receiverPhone},
+             #{address.province}, #{address.city}, #{address.district},
+             #{address.detailAddress}, #{address.postalCode}, #{address.isDefault},
+             NOW(), NOW(), 0)
+    </insert>
+
+    <update id="updateAddress">
+        UPDATE pet_snack_address
+        SET receiver_name = #{address.receiverName}, receiver_phone = #{address.receiverPhone},
+            province = #{address.province}, city = #{address.city}, district = #{address.district},
+            detail_address = #{address.detailAddress}, postal_code = #{address.postalCode},
+            is_default = #{address.isDefault}, updated_at = NOW()
+        WHERE id = #{address.id} AND user_id = #{address.userId} AND deleted = 0
+    </update>
+
+    <update id="deleteAddress">
+        UPDATE pet_snack_address SET deleted = 1, is_default = 0, updated_at = NOW()
+        WHERE id = #{addressId} AND user_id = #{userId} AND deleted = 0
+    </update>
+
+    <select id="selectLatestAddressId" resultType="long">
+        SELECT id FROM pet_snack_address
+        WHERE user_id = #{userId} AND deleted = 0
+        ORDER BY updated_at DESC, id DESC LIMIT 1
+    </select>
+
+    <update id="setDefaultAddress">
+        UPDATE pet_snack_address SET is_default = 1, updated_at = NOW()
+        WHERE id = #{addressId} AND user_id = #{userId} AND deleted = 0
+    </update>
+
+    <sql id="couponStatusWhere">
+        <choose>
+            <when test="status == 'USED'">uc.status = 'USED'</when>
+            <when test="status == 'EXPIRED'">
+                (uc.status = 'EXPIRED' OR (uc.status = 'AVAILABLE' AND c.valid_to &lt; NOW()))
+            </when>
+            <otherwise>
+                uc.status = 'AVAILABLE' AND c.valid_from &lt;= NOW() AND c.valid_to &gt;= NOW()
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectUserCoupons" resultType="java.util.LinkedHashMap">
+        SELECT uc.id AS userCouponId, c.coupon_name AS couponName,
+               c.threshold_amount AS thresholdAmountYuan,
+               c.discount_amount AS discountAmountYuan,
+               c.valid_from AS validFrom, c.valid_to AS validTo,
+               CASE WHEN uc.status = 'AVAILABLE' AND c.valid_to &lt; NOW()
+                    THEN 'EXPIRED' ELSE uc.status END AS status
+        FROM pet_snack_user_coupon uc
+        INNER JOIN pet_snack_coupon c ON c.id = uc.coupon_id AND c.deleted = 0
+        WHERE uc.user_id = #{userId} AND uc.deleted = 0
+          AND <include refid="couponStatusWhere"/>
+        ORDER BY c.valid_to, uc.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countUserCoupons" resultType="long">
+        SELECT COUNT(1)
+        FROM pet_snack_user_coupon uc
+        INNER JOIN pet_snack_coupon c ON c.id = uc.coupon_id AND c.deleted = 0
+        WHERE uc.user_id = #{userId} AND uc.deleted = 0
+          AND <include refid="couponStatusWhere"/>
+    </select>
+
+    <select id="selectUserCoupon" resultType="java.util.LinkedHashMap">
+        SELECT uc.id AS userCouponId, uc.status, c.coupon_name AS couponName,
+               c.threshold_amount AS thresholdAmountYuan,
+               c.discount_amount AS discountAmountYuan,
+               c.valid_from AS validFrom, c.valid_to AS validTo
+        FROM pet_snack_user_coupon uc
+        INNER JOIN pet_snack_coupon c ON c.id = uc.coupon_id AND c.deleted = 0
+        WHERE uc.id = #{userCouponId} AND uc.user_id = #{userId} AND uc.deleted = 0
+        LIMIT 1
+    </select>
+
+    <update id="lockUserCoupon">
+        UPDATE pet_snack_user_coupon
+        SET status = 'USED', used_order_id = #{orderId}, used_at = NOW(), updated_at = NOW()
+        WHERE id = #{userCouponId} AND user_id = #{userId}
+          AND status = 'AVAILABLE' AND deleted = 0
+    </update>
+
+    <update id="releaseUserCoupon">
+        UPDATE pet_snack_user_coupon
+        SET status = 'AVAILABLE', used_order_id = NULL, used_at = NULL, updated_at = NOW()
+        WHERE id = #{userCouponId} AND user_id = #{userId}
+          AND used_order_id = #{orderId} AND status = 'USED' AND deleted = 0
+    </update>
+
+    <update id="decreaseSkuStock">
+        UPDATE pet_snack_product_sku
+        SET stock = stock - #{quantity}, updated_at = NOW()
+        WHERE id = #{skuId} AND stock &gt;= #{quantity}
+          AND status = 'ACTIVE' AND deleted = 0
+    </update>
+
+    <update id="restoreSkuStock">
+        UPDATE pet_snack_product_sku
+        SET stock = stock + #{quantity}, updated_at = NOW()
+        WHERE id = #{skuId} AND deleted = 0
+    </update>
+
+    <select id="selectOrderByClientRequest" resultType="java.util.LinkedHashMap">
+        SELECT id AS orderId, order_no AS orderNo, status,
+               product_amount AS productAmountYuan, freight_amount AS freightAmountYuan,
+               discount_amount AS discountAmountYuan, pay_amount AS payAmountYuan,
+               expires_at AS expiresAt, created_at AS createdAt
+        FROM pet_snack_order
+        WHERE user_id = #{userId} AND client_request_no = #{clientRequestNo} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insertOrder" useGeneratedKeys="true" keyProperty="order.id">
+        INSERT INTO pet_snack_order
+            (order_no, client_request_no, user_id, address_id, user_coupon_id,
+             receiver_name, receiver_phone, receiver_address, remark,
+             product_amount, freight_amount, discount_amount, pay_amount,
+             total_quantity, status, payment_status, expires_at,
+             created_at, updated_at, deleted)
+        VALUES
+            (#{order.orderNo}, #{order.clientRequestNo}, #{order.userId},
+             #{order.addressId}, #{order.userCouponId}, #{order.receiverName},
+             #{order.receiverPhone}, #{order.receiverAddress}, #{order.remark},
+             #{order.productAmountYuan}, #{order.freightAmountYuan},
+             #{order.discountAmountYuan}, #{order.payAmountYuan},
+             #{order.totalQuantity}, 'PENDING_PAYMENT', 'UNPAID', #{order.expiresAt},
+             NOW(), NOW(), 0)
+    </insert>
+
+    <insert id="insertOrderItem" useGeneratedKeys="true" keyProperty="item.id">
+        INSERT INTO pet_snack_order_item
+            (order_id, product_id, sku_id, product_name, sku_name, cover_url,
+             unit_price, quantity, subtotal_amount, created_at, updated_at, deleted)
+        VALUES
+            (#{item.orderId}, #{item.productId}, #{item.skuId}, #{item.productName},
+             #{item.skuName}, #{item.coverUrl}, #{item.unitPriceYuan},
+             #{item.quantity}, #{item.subtotalAmountYuan}, NOW(), NOW(), 0)
+    </insert>
+
+    <sql id="orderStatusWhere">
+        <choose>
+            <when test="status == null or status == '' or status == 'ALL'">1 = 1</when>
+            <when test="status == 'PENDING_RECEIPT'">status IN ('PAID', 'PROCESSING', 'SHIPPED')</when>
+            <when test="status == 'AFTER_SALE'">status IN ('REFUND_PENDING', 'REFUNDED', 'REFUND_REJECTED')</when>
+            <otherwise>status = #{status}</otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectOrders" resultType="java.util.LinkedHashMap">
+        SELECT id AS orderId, order_no AS orderNo, status,
+               product_amount AS productAmountYuan, freight_amount AS freightAmountYuan,
+               discount_amount AS discountAmountYuan, pay_amount AS payAmountYuan,
+               total_quantity AS totalQuantity, created_at AS createdAt,
+               expires_at AS expiresAt
+        FROM pet_snack_order
+        WHERE user_id = #{userId} AND deleted = 0
+          AND <include refid="orderStatusWhere"/>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countOrders" resultType="long">
+        SELECT COUNT(1) FROM pet_snack_order
+        WHERE user_id = #{userId} AND deleted = 0
+          AND <include refid="orderStatusWhere"/>
+    </select>
+
+    <select id="countOrdersByStatus" resultType="java.util.LinkedHashMap">
+        SELECT status, COUNT(1) AS count
+        FROM pet_snack_order
+        WHERE user_id = #{userId} AND deleted = 0
+        GROUP BY status
+    </select>
+
+    <select id="selectOrder" resultType="java.util.LinkedHashMap">
+        SELECT id AS orderId, order_no AS orderNo, status,
+               payment_status AS paymentStatus, address_id AS addressId,
+               user_coupon_id AS userCouponId, receiver_name AS receiverName,
+               receiver_phone AS receiverPhone, receiver_address AS receiverAddress,
+               remark, product_amount AS productAmountYuan,
+               freight_amount AS freightAmountYuan, discount_amount AS discountAmountYuan,
+               pay_amount AS payAmountYuan, total_quantity AS totalQuantity,
+               transaction_id AS transactionId, paid_at AS paidAt,
+               expires_at AS expiresAt, cancelled_at AS cancelledAt,
+               completed_at AS completedAt, created_at AS createdAt
+        FROM pet_snack_order
+        WHERE id = #{orderId} AND user_id = #{userId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectOrderItems" resultType="java.util.LinkedHashMap">
+        SELECT id, product_id AS productId, sku_id AS skuId,
+               product_name AS productName, sku_name AS skuName,
+               cover_url AS coverUrl, unit_price AS unitPriceYuan,
+               quantity, subtotal_amount AS subtotalAmountYuan
+        FROM pet_snack_order_item
+        WHERE order_id = #{orderId} AND deleted = 0
+        ORDER BY id
+    </select>
+
+    <select id="lockOrderByOrderNo" resultType="java.util.LinkedHashMap">
+        SELECT id AS orderId, order_no AS orderNo, status,
+               payment_status AS paymentStatus, pay_amount AS payAmountYuan,
+               transaction_id AS transactionId
+        FROM pet_snack_order
+        WHERE order_no = #{orderNo} AND deleted = 0
+        LIMIT 1 FOR UPDATE
+    </select>
+
+    <update id="markOrderPaid">
+        UPDATE pet_snack_order
+        SET status = 'PAID', payment_status = 'PAID', transaction_id = #{transactionId},
+            paid_at = NOW(), updated_at = NOW()
+        WHERE id = #{orderId} AND status = 'PENDING_PAYMENT'
+          AND payment_status = 'UNPAID' AND deleted = 0
+    </update>
+
+    <update id="updateOrderStatus">
+        UPDATE pet_snack_order
+        SET status = #{targetStatus},
+            cancelled_at = CASE WHEN #{targetStatus} = 'CANCELLED' THEN NOW() ELSE cancelled_at END,
+            completed_at = CASE WHEN #{targetStatus} = 'COMPLETED' THEN NOW() ELSE completed_at END,
+            updated_at = NOW()
+        WHERE id = #{orderId} AND user_id = #{userId}
+          AND status = #{expectedStatus} AND deleted = 0
+    </update>
+
+    <update id="updateOrderRefundStatus">
+        UPDATE pet_snack_order
+        SET status = 'REFUND_PENDING', updated_at = NOW()
+        WHERE id = #{orderId} AND user_id = #{userId}
+          AND status IN ('PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED') AND deleted = 0
+    </update>
+
+    <insert id="insertRefund" useGeneratedKeys="true" keyProperty="refund.id">
+        INSERT INTO pet_snack_refund
+            (refund_no, order_id, user_id, reason, refund_amount,
+             status, created_at, updated_at, deleted)
+        VALUES
+            (#{refund.refundNo}, #{refund.orderId}, #{refund.userId}, #{refund.reason},
+             #{refund.refundAmountYuan}, 'PENDING', NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectHelpArticles" resultType="java.util.LinkedHashMap">
+        SELECT id AS articleId, title, summary
+        FROM pet_snack_help_article
+        WHERE status = 'ACTIVE' AND deleted = 0
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectHelpArticle" resultType="java.util.LinkedHashMap">
+        SELECT id AS articleId, title, summary, content
+        FROM pet_snack_help_article
+        WHERE id = #{articleId} AND status = 'ACTIVE' AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insertFeedback" useGeneratedKeys="true" keyProperty="feedback.id">
+        INSERT INTO pet_snack_feedback
+            (user_id, order_id, feedback_type, content, image_urls,
+             contact, status, created_at, updated_at, deleted)
+        VALUES
+            (#{feedback.userId}, #{feedback.orderId}, #{feedback.type},
+             #{feedback.content}, #{feedback.imageUrlsJson}, #{feedback.contact},
+             'PENDING', NOW(), NOW(), 0)
+    </insert>
+
+    <select id="adminCountUsers" resultType="long">
+        SELECT COUNT(1) FROM pet_snack_user
+        WHERE deleted = 0
+        <if test="status != null and status != ''">AND status = #{status}</if>
+        <if test="keyword != null and keyword != ''">
+            AND (nickname LIKE CONCAT('%', #{keyword}, '%') OR openid LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+    <select id="adminSelectUsers" resultType="java.util.LinkedHashMap">
+        SELECT id AS userId, nickname, avatar_url AS avatarUrl, openid, status,
+               last_login_ip AS lastLoginIp, last_login_at AS lastLoginAt, created_at AS createdAt
+        FROM pet_snack_user
+        WHERE deleted = 0
+        <if test="status != null and status != ''">AND status = #{status}</if>
+        <if test="keyword != null and keyword != ''">
+            AND (nickname LIKE CONCAT('%', #{keyword}, '%') OR openid LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="adminCountOrders" resultType="long">
+        SELECT COUNT(1) FROM pet_snack_order o
+        LEFT JOIN pet_snack_user u ON u.id = o.user_id AND u.deleted = 0
+        WHERE o.deleted = 0
+        <if test="status != null and status != '' and status != 'ALL'">AND o.status = #{status}</if>
+        <if test="keyword != null and keyword != ''">
+            AND (o.order_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR o.receiver_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR o.receiver_phone LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+    <select id="adminSelectOrders" resultType="java.util.LinkedHashMap">
+        SELECT o.id AS orderId, o.order_no AS orderNo, o.user_id AS userId,
+               u.nickname, u.avatar_url AS avatarUrl, o.status, o.payment_status AS paymentStatus,
+               o.receiver_name AS receiverName, o.receiver_phone AS receiverPhone,
+               o.pay_amount AS payAmountYuan, o.total_quantity AS totalQuantity,
+               o.transaction_id AS transactionId, o.paid_at AS paidAt, o.created_at AS createdAt
+        FROM pet_snack_order o
+        LEFT JOIN pet_snack_user u ON u.id = o.user_id AND u.deleted = 0
+        WHERE o.deleted = 0
+        <if test="status != null and status != '' and status != 'ALL'">AND o.status = #{status}</if>
+        <if test="keyword != null and keyword != ''">
+            AND (o.order_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR o.receiver_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR o.receiver_phone LIKE CONCAT('%', #{keyword}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY o.id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="adminSelectOrder" resultType="java.util.LinkedHashMap">
+        SELECT o.id AS orderId, o.order_no AS orderNo, o.user_id AS userId,
+               u.nickname, u.avatar_url AS avatarUrl, o.status, o.payment_status AS paymentStatus,
+               o.receiver_name AS receiverName, o.receiver_phone AS receiverPhone,
+               o.receiver_address AS receiverAddress, o.remark,
+               o.product_amount AS productAmountYuan, o.freight_amount AS freightAmountYuan,
+               o.discount_amount AS discountAmountYuan, o.pay_amount AS payAmountYuan,
+               o.total_quantity AS totalQuantity, o.transaction_id AS transactionId,
+               o.paid_at AS paidAt, o.created_at AS createdAt
+        FROM pet_snack_order o
+        LEFT JOIN pet_snack_user u ON u.id = o.user_id AND u.deleted = 0
+        WHERE o.id = #{orderId} AND o.deleted = 0 LIMIT 1
+    </select>
+
+    <select id="adminOverview" resultType="java.util.LinkedHashMap">
+        SELECT (SELECT COUNT(1) FROM pet_snack_user WHERE deleted = 0) AS userCount,
+               (SELECT COUNT(1) FROM pet_snack_order WHERE deleted = 0) AS orderCount,
+               (SELECT COUNT(1) FROM pet_snack_order WHERE status = 'PENDING_PAYMENT' AND deleted = 0) AS pendingPaymentCount,
+               (SELECT COALESCE(SUM(pay_amount), 0) FROM pet_snack_order WHERE payment_status = 'PAID' AND deleted = 0) AS paidAmountYuan
+    </select>
+
+    <update id="adminUpdateStore">
+        UPDATE pet_snack_store
+        SET store_name = #{store.name}, logo_url = #{store.logoUrl}, description = #{store.description},
+            service_tags = #{store.serviceTagsJson}, service_phone = #{store.servicePhone}, updated_at = NOW()
+        WHERE id = #{store.id} AND deleted = 0
+    </update>
+
+    <select id="adminSelectCategories" resultType="java.util.LinkedHashMap">
+        SELECT id, category_code AS code, category_name AS name, icon_url AS iconUrl,
+               status, sort_order AS sortOrder
+        FROM pet_snack_category WHERE deleted = 0 ORDER BY sort_order, id
+    </select>
+    <insert id="adminInsertCategory" useGeneratedKeys="true" keyProperty="category.id">
+        INSERT INTO pet_snack_category(category_code, category_name, icon_url, status, sort_order,
+               created_at, updated_at, deleted)
+        VALUES(#{category.code}, #{category.name}, #{category.iconUrl}, #{category.status},
+               #{category.sortOrder}, NOW(), NOW(), 0)
+    </insert>
+    <update id="adminUpdateCategory">
+        UPDATE pet_snack_category SET category_code=#{category.code}, category_name=#{category.name},
+               icon_url=#{category.iconUrl}, status=#{category.status}, sort_order=#{category.sortOrder}, updated_at=NOW()
+        WHERE id=#{category.id} AND deleted=0
+    </update>
+
+    <select id="adminSelectProducts" resultType="java.util.LinkedHashMap">
+        SELECT p.id, p.category_id AS categoryId, c.category_name AS categoryName,
+               p.product_name AS name, p.cover_url AS coverUrl, p.sale_price AS salePriceYuan,
+               p.market_price AS marketPriceYuan, p.sales_count AS salesCount, p.hot,
+               p.new_product AS newProduct, p.status, p.sort_order AS sortOrder,
+               COALESCE((SELECT SUM(s.stock) FROM pet_snack_product_sku s WHERE s.product_id=p.id AND s.deleted=0),0) AS stock
+        FROM pet_snack_product p LEFT JOIN pet_snack_category c ON c.id=p.category_id AND c.deleted=0
+        WHERE p.deleted=0
+        <if test="categoryId != null">AND p.category_id=#{categoryId}</if>
+        <if test="keyword != null and keyword != ''">AND p.product_name LIKE CONCAT('%',#{keyword},'%')</if>
+        ORDER BY p.sort_order,p.id DESC
+    </select>
+    <select id="adminSelectProduct" resultType="java.util.LinkedHashMap">
+        SELECT p.id, p.category_id AS categoryId, p.product_name AS name, p.cover_url AS coverUrl,
+               p.gallery_urls AS galleryUrlsJson, p.description, p.purchase_notice AS purchaseNotice,
+               p.sale_price AS salePriceYuan, p.market_price AS marketPriceYuan, p.sales_count AS salesCount,
+               p.hot, p.new_product AS newProduct, p.status, p.sort_order AS sortOrder,
+               COALESCE((SELECT SUM(s.stock) FROM pet_snack_product_sku s WHERE s.product_id=p.id AND s.deleted=0),0) AS stock
+        FROM pet_snack_product p WHERE p.id=#{productId} AND p.deleted=0 LIMIT 1
+    </select>
+    <insert id="adminInsertProduct" useGeneratedKeys="true" keyProperty="product.id">
+        INSERT INTO pet_snack_product(category_id,product_name,cover_url,gallery_urls,description,purchase_notice,
+               sale_price,market_price,sales_count,hot,new_product,status,sort_order,created_at,updated_at,deleted)
+        VALUES(#{product.categoryId},#{product.name},#{product.coverUrl},#{product.galleryUrlsJson},#{product.description},
+               #{product.purchaseNotice},#{product.salePrice},#{product.marketPrice},#{product.salesCount},#{product.hot},
+               #{product.newProduct},#{product.status},#{product.sortOrder},NOW(),NOW(),0)
+    </insert>
+    <update id="adminUpdateProduct">
+        UPDATE pet_snack_product SET category_id=#{product.categoryId},product_name=#{product.name},cover_url=#{product.coverUrl},
+               gallery_urls=#{product.galleryUrlsJson},description=#{product.description},purchase_notice=#{product.purchaseNotice},
+               sale_price=#{product.salePrice},market_price=#{product.marketPrice},sales_count=#{product.salesCount},
+               hot=#{product.hot},new_product=#{product.newProduct},status=#{product.status},sort_order=#{product.sortOrder},updated_at=NOW()
+        WHERE id=#{product.id} AND deleted=0
+    </update>
+    <insert id="adminInsertSku" useGeneratedKeys="true" keyProperty="sku.id">
+        INSERT INTO pet_snack_product_sku(product_id,sku_code,sku_name,sale_price,market_price,stock,status,sort_order,
+               created_at,updated_at,deleted)
+        VALUES(#{sku.productId},#{sku.skuCode},'默认规格',#{sku.salePrice},#{sku.marketPrice},#{sku.stock},'ACTIVE',0,NOW(),NOW(),0)
+    </insert>
+    <update id="adminUpdatePrimarySku">
+        UPDATE pet_snack_product_sku SET sale_price=#{salePrice},market_price=#{marketPrice},stock=#{stock},updated_at=NOW()
+        WHERE product_id=#{productId} AND deleted=0 ORDER BY sort_order,id LIMIT 1
+    </update>
+</mapper>

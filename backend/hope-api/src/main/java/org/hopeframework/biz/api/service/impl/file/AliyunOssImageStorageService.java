@@ -10,6 +10,7 @@ import org.hopeframework.biz.api.entity.output.file.ImageUploadResponse;
 import org.hopeframework.biz.api.service.file.IImageStorageService;
 import org.hopeframework.core.exception.HopeException;
 import org.springframework.http.HttpStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(prefix = "storage.image", name = "provider", havingValue = "aliyun", matchIfMissing = true)
 public class AliyunOssImageStorageService implements IImageStorageService {
     private static final Set<String> IMAGE_EXTENSIONS = new HashSet<>(
             Arrays.asList("jpg", "jpeg", "png", "gif", "webp", "bmp"));

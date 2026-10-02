@@ -99,6 +99,8 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
+            <!-- aliyun-java-sdk-core 4.6.4 uses JsonParser.parseString (Gson 2.8.6+). -->
+            <version>2.8.9</version>
         </dependency>
 
         <!-- 常用工具 -->
@@ -116,6 +118,23 @@
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
             <version>3.18.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-core</artifactId>
+            <version>4.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.246</version>
+        </dependency>
+        <!-- COS 5.6.x signs requests through HmacUtils; the legacy dependency
+             management resolves commons-codec 1.6, which does not contain it. -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.15</version>
         </dependency>
 
         <!-- Swagger 接口文档 -->

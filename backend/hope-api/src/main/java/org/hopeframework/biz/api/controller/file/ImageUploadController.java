@@ -25,7 +25,7 @@ public class ImageUploadController {
         this.imageStorageService = imageStorageService;
     }
 
-    @ApiOperation("上传图片到阿里云 OSS")
+    @ApiOperation("上传图片到已配置的对象存储")
     @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public RespBody<ImageUploadResponse> uploadImage(@RequestParam("file") MultipartFile file) {
         return ResultUtil.success(imageStorageService.upload(file));

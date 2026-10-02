@@ -34,8 +34,22 @@ public class AccessTokenService {
                 .withAudience(String.valueOf(principal.getUserId()))
                 .withClaim("memberId", principal.getMemberId())
                 .withClaim("tenantId", principal.getTenantId())
+                .withClaim("principalType", principal.getPrincipalType())
                 .withIssuedAt(now)
                 .withExpiresAt(new Date(now.getTime() + accessTokenSeconds * 1000L))
+                .sign(algorithm);
+    }
+
+    /** 创建不设置过期时间的业务令牌，由对应业务负责主动退出或服务端失效处理。 */
+    public String createPermanent(AuthPrincipal principal) {
+        Date now = new Date();
+        return JWT.create()
+                .withIssuer(ISSUER)
+                .withAudience(String.valueOf(principal.getUserId()))
+                .withClaim("memberId", principal.getMemberId())
+                .withClaim("tenantId", principal.getTenantId())
+                .withClaim("principalType", principal.getPrincipalType())
+                .withIssuedAt(now)
                 .sign(algorithm);
     }
 
@@ -45,10 +59,12 @@ public class AccessTokenService {
             Long userId = Long.valueOf(jwt.getAudience().get(0));
             Long memberId = jwt.getClaim("memberId").asLong();
             Long tenantId = jwt.getClaim("tenantId").asLong();
+            String principalType = jwt.getClaim("principalType").asString();
             if (memberId == null || tenantId == null) {
                 throw new IllegalArgumentException("missing claims");
             }
-            return new AuthPrincipal(userId, memberId, tenantId);
+            return new AuthPrincipal(userId, memberId, tenantId,
+                    principalType == null ? "COMMUNITY" : principalType);
         } catch (Exception ex) {
             throw new HopeException(ResponseConst.ACCESS_TOKEN);
         }
