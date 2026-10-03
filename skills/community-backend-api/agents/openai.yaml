@@ -1,0 +1,4 @@
+interface:
+  display_name: "Community 后端接口"
+  short_description: "学习社区 Java 接口、数据分层、业务鉴权和上传支付集成方式"
+  default_prompt: "使用 $community-backend-api 带我理解当前项目的对应模块，并按实际源码说明运行与开发方法。"

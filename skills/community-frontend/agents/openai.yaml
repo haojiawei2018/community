@@ -1,0 +1,4 @@
+interface:
+  display_name: "Community 用户端前端"
+  short_description: "学习社区 uni-app 页面、登录态、接口接入和跨端图片上传流程"
+  default_prompt: "使用 $community-frontend 带我理解当前项目的对应模块，并按实际源码说明运行与开发方法。"
